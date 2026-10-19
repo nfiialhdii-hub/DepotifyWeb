@@ -1,0 +1,1084 @@
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import '../css/purchase.css';
+
+const API = '/api/v1';
+
+const emptyForm = () => ({
+    vendor_id: '',
+    po_date: new Date().toISOString().slice(0, 10),
+    expected_delivery_date: '',
+    shipping_address: '',
+    shipping_method: '',
+    tax: '0',
+    notes: '',
+});
+
+const emptyItem = () => ({
+    product_id: '',
+    qty_ordered: '1',
+    agreed_price: '',
+});
+
+function rupiah(value) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0,
+    }).format(Number(value || 0));
+}
+
+function statusLabel(status) {
+    const labels = {
+        draft: 'Draft',
+        ordered: 'Dipesan',
+        confirmed: 'Dikonfirmasi',
+        shipped: 'Dikirim',
+        rejected: 'Ditolak',
+        cancelled: 'Dibatalkan',
+    };
+
+    return labels[status] || status || '-';
+}
+
+function unwrapList(result) {
+    if (Array.isArray(result)) return result;
+    if (Array.isArray(result?.data)) return result.data;
+    if (Array.isArray(result?.data?.data)) return result.data.data;
+    return [];
+}
+
+export default function Purchases() {
+    const token = localStorage.getItem('depotify_token');
+
+    const [orders, setOrders] = useState([]);
+    const [vendors, setVendors] = useState([]);
+    const [products, setProducts] = useState([]);
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+
+    const [showForm, setShowForm] = useState(false);
+    const [detail, setDetail] = useState(null);
+
+    const [form, setForm] = useState(emptyForm);
+    const [items, setItems] = useState([emptyItem()]);
+
+    const headers = useMemo(() => ({
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+    }), [token]);
+
+    const request = useCallback(async (url, options = {}) => {
+        if (!token) {
+            throw new Error(
+                'Token login tidak ditemukan. Silakan login kembali.'
+            );
+        }
+
+        const response = await fetch(`${API}${url}`, {
+            ...options,
+            headers: {
+                ...headers,
+                ...(options.headers || {}),
+            },
+        });
+
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            const firstValidation =
+                result.errors && Object.values(result.errors)[0];
+
+            throw new Error(
+                (Array.isArray(firstValidation)
+                    ? firstValidation[0]
+                    : firstValidation) ||
+                result.message ||
+                'Permintaan gagal diproses.'
+            );
+        }
+
+        return result;
+    }, [headers, token]);
+
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        setError('');
+
+        try {
+            const [orderResult, vendorResult, productResult] =
+                await Promise.all([
+                    request('/purchase-orders'),
+                    request('/vendors'),
+                    request('/products'),
+                ]);
+
+            setOrders(unwrapList(orderResult));
+            setVendors(unwrapList(vendorResult));
+            setProducts(unwrapList(productResult));
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [request]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
+    const filteredOrders = useMemo(() => {
+        return orders.filter((order) => {
+            const query = search.trim().toLowerCase();
+
+            const matchesSearch =
+                !query ||
+                [order.po_number, order.vendor?.name].some((value) =>
+                    String(value || '').toLowerCase().includes(query)
+                );
+
+            return (
+                matchesSearch &&
+                (!statusFilter || order.status === statusFilter)
+            );
+        });
+    }, [orders, search, statusFilter]);
+
+    const summary = useMemo(() => ({
+        total: orders.length,
+        draft: orders.filter((item) => item.status === 'draft').length,
+        process: orders.filter((item) =>
+            ['ordered', 'confirmed', 'shipped'].includes(item.status)
+        ).length,
+        value: orders.reduce(
+            (sum, item) => sum + Number(item.total_price || 0),
+            0
+        ),
+    }), [orders]);
+
+    const updateForm = (event) => {
+        setForm((previous) => ({
+            ...previous,
+            [event.target.name]: event.target.value,
+        }));
+    };
+
+    const updateItem = (index, key, value) => {
+        setItems((previous) =>
+            previous.map((item, i) =>
+                i === index ? { ...item, [key]: value } : item
+            )
+        );
+    };
+
+    const selectedProduct = (id) => {
+        return products.find(
+            (product) => Number(product.id) === Number(id)
+        );
+    };
+
+    const subtotal = items.reduce((sum, item) => {
+        const product = selectedProduct(item.product_id);
+        const price = item.agreed_price === ''
+            ? Number(product?.purchase_price || 0)
+            : Number(item.agreed_price || 0);
+
+        return sum + Number(item.qty_ordered || 0) * price;
+    }, 0);
+
+    const total = subtotal + Number(form.tax || 0);
+
+    const openCreate = () => {
+        setError('');
+        setSuccess('');
+        setForm(emptyForm());
+        setItems([emptyItem()]);
+        setShowForm(true);
+    };
+
+    const submitOrder = async (event) => {
+        event.preventDefault();
+        setError('');
+        setSuccess('');
+
+        if (!form.vendor_id) {
+            setError('Pilih supplier terlebih dahulu.');
+            return;
+        }
+
+        if (
+            !items.length ||
+            items.some(
+                (item) =>
+                    !item.product_id ||
+                    Number(item.qty_ordered) < 1
+            )
+        ) {
+            setError(
+                'Pilih produk dan isi jumlah minimal 1 untuk setiap item.'
+            );
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            const result = await request('/purchase-orders', {
+                method: 'POST',
+                body: JSON.stringify({
+                    vendor_id: Number(form.vendor_id),
+                    po_date: form.po_date,
+                    expected_delivery_date:
+                        form.expected_delivery_date || null,
+                    shipping_address: form.shipping_address || null,
+                    shipping_method: form.shipping_method || null,
+                    tax: Number(form.tax || 0),
+                    notes: form.notes || null,
+                    items: items.map((item) => ({
+                        product_id: Number(item.product_id),
+                        qty_ordered: Number(item.qty_ordered),
+                        agreed_price:
+                            item.agreed_price === ''
+                                ? null
+                                : Number(item.agreed_price),
+                    })),
+                }),
+            });
+
+            setShowForm(false);
+
+            setSuccess(
+                `Purchase Order ${
+                    result.po_number ||
+                    result.data?.po_number ||
+                    'baru'
+                } berhasil dibuat sebagai draft.`
+            );
+
+            await fetchData();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const changeStatus = async (order, status) => {
+        setError('');
+        setSuccess('');
+
+        try {
+            await request(`/purchase-orders/${order.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ status }),
+            });
+
+            setSuccess(
+                `Status ${order.po_number} diperbarui menjadi ${
+                    statusLabel(status)
+                }.`
+            );
+
+            await fetchData();
+
+            if (detail?.id === order.id) {
+                const refreshed = await request(
+                    `/purchase-orders/${order.id}`
+                );
+
+                setDetail(refreshed.data || refreshed);
+            }
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const openDetail = async (order) => {
+        setError('');
+
+        try {
+            const result = await request(
+                `/purchase-orders/${order.id}`
+            );
+
+            setDetail(result.data || result);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const allowedNext = (status) => ({
+        draft: [
+            { value: 'ordered', label: 'Tandai Dipesan' },
+            { value: 'cancelled', label: 'Batalkan' },
+        ],
+        ordered: [
+            { value: 'confirmed', label: 'Konfirmasi Supplier' },
+            { value: 'rejected', label: 'Tolak Pesanan' },
+            { value: 'cancelled', label: 'Batalkan' },
+        ],
+        confirmed: [
+            { value: 'shipped', label: 'Tandai Dikirim' },
+            { value: 'cancelled', label: 'Batalkan' },
+        ],
+    }[status] || []);
+
+    return (
+        <section className="purchases-page">
+            <div className="purchases-heading">
+                <div>
+                    <p className="purchases-eyebrow">
+                        PENGADAAN BARANG
+                    </p>
+                    <h1>Pembelian</h1>
+                    <p className="purchases-subtitle">
+                        Kelola pesanan stok depot kepada supplier.
+                    </p>
+                </div>
+
+                <button
+                    className="purchase-primary-btn"
+                    type="button"
+                    onClick={openCreate}
+                >
+                    ＋ Buat Pembelian
+                </button>
+            </div>
+
+            {error && (
+                <div className="purchase-alert purchase-alert-error">
+                    <span>{error}</span>
+                    <button
+                        type="button"
+                        onClick={() => setError('')}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
+            {success && (
+                <div className="purchase-alert purchase-alert-success">
+                    <span>{success}</span>
+                    <button
+                        type="button"
+                        onClick={() => setSuccess('')}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
+            <div className="purchase-summary-grid">
+                <article className="purchase-summary-card">
+                    <span className="purchase-summary-icon">▤</span>
+                    <div>
+                        <p>Total Pesanan</p>
+                        <strong>{summary.total}</strong>
+                        <small>Semua purchase order</small>
+                    </div>
+                </article>
+
+                <article className="purchase-summary-card">
+                    <span className="purchase-summary-icon amber">◷</span>
+                    <div>
+                        <p>Draft</p>
+                        <strong>{summary.draft}</strong>
+                        <small>Belum dikirim ke supplier</small>
+                    </div>
+                </article>
+
+                <article className="purchase-summary-card">
+                    <span className="purchase-summary-icon blue">⇄</span>
+                    <div>
+                        <p>Dalam Proses</p>
+                        <strong>{summary.process}</strong>
+                        <small>Dipesan hingga dikirim</small>
+                    </div>
+                </article>
+
+                <article className="purchase-summary-card">
+                    <span className="purchase-summary-icon green">Rp</span>
+                    <div>
+                        <p>Nilai Pesanan</p>
+                        <strong>{rupiah(summary.value)}</strong>
+                        <small>Total nilai seluruh PO</small>
+                    </div>
+                </article>
+            </div>
+
+            <div className="purchase-list-card">
+                <div className="purchase-list-heading">
+                    <div>
+                        <h2>Daftar Pembelian</h2>
+                        <p>
+                            Nomor pesanan, supplier, nilai, dan status
+                            pengadaan.
+                        </p>
+                    </div>
+
+                    <button
+                        className="purchase-refresh-btn"
+                        type="button"
+                        onClick={fetchData}
+                        title="Muat ulang"
+                    >
+                        ↻
+                    </button>
+                </div>
+
+                <div className="purchase-toolbar">
+                    <label className="purchase-search">
+                        <span>⌕</span>
+                        <input
+                            value={search}
+                            onChange={(event) =>
+                                setSearch(event.target.value)
+                            }
+                            placeholder="Cari nomor PO atau supplier..."
+                        />
+                    </label>
+
+                    <select
+                        value={statusFilter}
+                        onChange={(event) =>
+                            setStatusFilter(event.target.value)
+                        }
+                        aria-label="Filter status"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="draft">Draft</option>
+                        <option value="ordered">Dipesan</option>
+                        <option value="confirmed">Dikonfirmasi</option>
+                        <option value="shipped">Dikirim</option>
+                        <option value="rejected">Ditolak</option>
+                        <option value="cancelled">Dibatalkan</option>
+                    </select>
+                </div>
+
+                {loading ? (
+                    <div className="purchase-empty">
+                        <span className="purchase-spinner" />
+                        <p>Memuat data pembelian...</p>
+                    </div>
+                ) : filteredOrders.length === 0 ? (
+                    <div className="purchase-empty">
+                        <span className="purchase-empty-icon">▤</span>
+                        <strong>Belum ada pembelian</strong>
+                        <p>
+                            {search || statusFilter
+                                ? 'Tidak ada pesanan yang sesuai dengan pencarian.'
+                                : 'Buat Purchase Order pertama untuk mulai mencatat pesanan ke supplier.'}
+                        </p>
+
+                        {!search && !statusFilter && (
+                            <button
+                                className="purchase-primary-btn"
+                                type="button"
+                                onClick={openCreate}
+                            >
+                                ＋ Buat Pembelian
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="purchase-table-wrap">
+                        <table className="purchase-table">
+                            <thead>
+                                <tr>
+                                    <th>Nomor PO</th>
+                                    <th>Tanggal</th>
+                                    <th>Supplier</th>
+                                    <th>Estimasi Tiba</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {filteredOrders.map((order) => (
+                                    <tr key={order.id}>
+                                        <td>
+                                            <strong className="purchase-po-number">
+                                                {order.po_number || `PO-${order.id}`}
+                                            </strong>
+                                            <small>
+                                                {order.items?.length || 0} item
+                                            </small>
+                                        </td>
+
+                                        <td>
+                                            {order.po_date
+                                                ? new Date(
+                                                    `${order.po_date}T00:00:00`
+                                                ).toLocaleDateString('id-ID')
+                                                : '-'}
+                                        </td>
+
+                                        <td>
+                                            <strong>
+                                                {order.vendor?.name || '-'}
+                                            </strong>
+                                            <small>
+                                                {order.vendor?.phone || 'Supplier'}
+                                            </small>
+                                        </td>
+
+                                        <td>
+                                            {order.expected_delivery_date
+                                                ? new Date(
+                                                    `${order.expected_delivery_date}T00:00:00`
+                                                ).toLocaleDateString('id-ID')
+                                                : '-'}
+                                        </td>
+
+                                        <td>
+                                            <strong>
+                                                {rupiah(order.total_price)}
+                                            </strong>
+                                        </td>
+
+                                        <td>
+                                            <span
+                                                className={`purchase-status status-${order.status}`}
+                                            >
+                                                {statusLabel(order.status)}
+                                            </span>
+                                        </td>
+
+                                        <td>
+                                            <div className="purchase-row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="purchase-icon-btn"
+                                                    onClick={() => openDetail(order)}
+                                                    title="Detail"
+                                                >
+                                                    ⌕
+                                                </button>
+
+                                                {allowedNext(order.status).length > 0 && (
+                                                    <select
+                                                        className="purchase-action-select"
+                                                        value=""
+                                                        onChange={(event) => {
+                                                            if (event.target.value) {
+                                                                changeStatus(
+                                                                    order,
+                                                                    event.target.value
+                                                                );
+                                                            }
+                                                        }}
+                                                        aria-label={`Ubah status ${order.po_number}`}
+                                                    >
+                                                        <option value="">
+                                                            Ubah status
+                                                        </option>
+
+                                                        {allowedNext(order.status).map(
+                                                            (next) => (
+                                                                <option
+                                                                    key={next.value}
+                                                                    value={next.value}
+                                                                >
+                                                                    {next.label}
+                                                                </option>
+                                                            )
+                                                        )}
+                                                    </select>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {showForm && (
+                <div
+                    className="purchase-modal-backdrop"
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (
+                            event.target === event.currentTarget &&
+                            !saving
+                        ) {
+                            setShowForm(false);
+                        }
+                    }}
+                >
+                    <form
+                        className="purchase-modal"
+                        onSubmit={submitOrder}
+                    >
+                        <div className="purchase-modal-header">
+                            <div>
+                                <p className="purchases-eyebrow">
+                                    PURCHASE ORDER BARU
+                                </p>
+                                <h2>Buat Pembelian</h2>
+                                <p>
+                                    Catat barang yang akan dipesan dari supplier.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="purchase-close-btn"
+                                onClick={() => setShowForm(false)}
+                                disabled={saving}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="purchase-form-grid">
+                            <label>
+                                Supplier
+                                <select
+                                    name="vendor_id"
+                                    value={form.vendor_id}
+                                    onChange={updateForm}
+                                    required
+                                >
+                                    <option value="">Pilih supplier</option>
+                                    {vendors.map((vendor) => (
+                                        <option
+                                            key={vendor.id}
+                                            value={vendor.id}
+                                        >
+                                            {vendor.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+
+                            <label>
+                                Tanggal Pesanan
+                                <input
+                                    type="date"
+                                    name="po_date"
+                                    value={form.po_date}
+                                    onChange={updateForm}
+                                    required
+                                />
+                            </label>
+
+                            <label>
+                                Estimasi Tiba
+                                <input
+                                    type="date"
+                                    name="expected_delivery_date"
+                                    value={form.expected_delivery_date}
+                                    onChange={updateForm}
+                                    min={form.po_date}
+                                />
+                            </label>
+
+                            <label>
+                                Metode Pengiriman
+                                <input
+                                    name="shipping_method"
+                                    value={form.shipping_method}
+                                    onChange={updateForm}
+                                    placeholder="Contoh: Diantar supplier"
+                                />
+                            </label>
+
+                            <label className="purchase-form-full">
+                                Alamat Pengiriman
+                                <input
+                                    name="shipping_address"
+                                    value={form.shipping_address}
+                                    onChange={updateForm}
+                                    placeholder="Alamat tujuan barang"
+                                />
+                            </label>
+                        </div>
+
+                        <div className="purchase-items-heading">
+                            <div>
+                                <h3>Barang yang Dipesan</h3>
+                                <p>
+                                    Harga awal mengikuti harga beli produk
+                                    dan bisa disesuaikan.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="purchase-add-item"
+                                onClick={() =>
+                                    setItems((previous) => [
+                                        ...previous,
+                                        emptyItem(),
+                                    ])
+                                }
+                            >
+                                ＋ Tambah Barang
+                            </button>
+                        </div>
+
+                        <div className="purchase-item-list">
+                            {items.map((item, index) => {
+                                const product = selectedProduct(item.product_id);
+
+                                const price = item.agreed_price === ''
+                                    ? Number(product?.purchase_price || 0)
+                                    : Number(item.agreed_price);
+
+                                return (
+                                    <div
+                                        className="purchase-item-row"
+                                        key={index}
+                                    >
+                                        <label className="purchase-item-product">
+                                            Produk
+                                            <select
+                                                value={item.product_id}
+                                                onChange={(event) =>
+                                                    updateItem(
+                                                        index,
+                                                        'product_id',
+                                                        event.target.value
+                                                    )
+                                                }
+                                                required
+                                            >
+                                                <option value="">
+                                                    Pilih produk
+                                                </option>
+
+                                                {products.map((productOption) => (
+                                                    <option
+                                                        key={productOption.id}
+                                                        value={productOption.id}
+                                                    >
+                                                        {productOption.name}
+                                                        {productOption.variant
+                                                            ? ` · ${productOption.variant}`
+                                                            : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+
+                                            {product && (
+                                                <small>
+                                                    SKU: {product.sku || '-'}
+                                                    {' · '}
+                                                    Harga beli:{' '}
+                                                    {rupiah(product.purchase_price)}
+                                                </small>
+                                            )}
+                                        </label>
+
+                                        <label>
+                                            Jumlah
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                step="1"
+                                                value={item.qty_ordered}
+                                                onChange={(event) =>
+                                                    updateItem(
+                                                        index,
+                                                        'qty_ordered',
+                                                        event.target.value
+                                                    )
+                                                }
+                                                required
+                                            />
+                                        </label>
+
+                                        <label>
+                                            Harga Satuan
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="1"
+                                                placeholder={String(
+                                                    product?.purchase_price || 0
+                                                )}
+                                                value={item.agreed_price}
+                                                onChange={(event) =>
+                                                    updateItem(
+                                                        index,
+                                                        'agreed_price',
+                                                        event.target.value
+                                                    )
+                                                }
+                                            />
+                                        </label>
+
+                                        <div className="purchase-item-total">
+                                            <small>Subtotal</small>
+                                            <strong>
+                                                {rupiah(
+                                                    Number(item.qty_ordered || 0) *
+                                                    price
+                                                )}
+                                            </strong>
+                                        </div>
+
+                                        {items.length > 1 && (
+                                            <button
+                                                type="button"
+                                                className="purchase-remove-item"
+                                                onClick={() =>
+                                                    setItems((previous) =>
+                                                        previous.filter(
+                                                            (_, i) => i !== index
+                                                        )
+                                                    )
+                                                }
+                                                aria-label="Hapus item"
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="purchase-bottom-grid">
+                            <label>
+                                Catatan
+                                <textarea
+                                    name="notes"
+                                    value={form.notes}
+                                    onChange={updateForm}
+                                    rows="2"
+                                    placeholder="Catatan tambahan untuk pesanan"
+                                />
+                            </label>
+
+                            <label>
+                                Pajak / Biaya Tambahan (Rp)
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    name="tax"
+                                    value={form.tax}
+                                    onChange={updateForm}
+                                />
+                            </label>
+
+                            <div className="purchase-total-box">
+                                <span>Subtotal</span>
+                                <strong>{rupiah(subtotal)}</strong>
+
+                                <span>Pajak / biaya</span>
+                                <strong>{rupiah(form.tax)}</strong>
+
+                                <div>
+                                    <span>Total Pesanan</span>
+                                    <strong>{rupiah(total)}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        {vendors.length === 0 && (
+                            <p className="purchase-inline-warning">
+                                Belum ada data supplier. Tambahkan supplier
+                                terlebih dahulu pada menu Supplier.
+                            </p>
+                        )}
+
+                        {products.length === 0 && (
+                            <p className="purchase-inline-warning">
+                                Belum ada data produk untuk dipesan.
+                            </p>
+                        )}
+
+                        <div className="purchase-modal-footer">
+                            <button
+                                type="button"
+                                className="purchase-secondary-btn"
+                                onClick={() => setShowForm(false)}
+                                disabled={saving}
+                            >
+                                Batal
+                            </button>
+
+                            <button
+                                type="submit"
+                                className="purchase-primary-btn"
+                                disabled={
+                                    saving ||
+                                    vendors.length === 0 ||
+                                    products.length === 0
+                                }
+                            >
+                                {saving
+                                    ? 'Menyimpan...'
+                                    : 'Simpan sebagai Draft'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {detail && (
+                <div
+                    className="purchase-modal-backdrop"
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) {
+                            setDetail(null);
+                        }
+                    }}
+                >
+                    <div className="purchase-modal purchase-detail-modal">
+                        <div className="purchase-modal-header">
+                            <div>
+                                <p className="purchases-eyebrow">
+                                    DETAIL PURCHASE ORDER
+                                </p>
+                                <h2>
+                                    {detail.po_number || `PO-${detail.id}`}
+                                </h2>
+                                <p>
+                                    {detail.vendor?.name ||
+                                        'Supplier belum tersedia'}
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="purchase-close-btn"
+                                onClick={() => setDetail(null)}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div className="purchase-detail-meta">
+                            <div>
+                                <small>Tanggal Pesanan</small>
+                                <strong>
+                                    {detail.po_date
+                                        ? new Date(
+                                            `${detail.po_date}T00:00:00`
+                                        ).toLocaleDateString('id-ID')
+                                        : '-'}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <small>Estimasi Tiba</small>
+                                <strong>
+                                    {detail.expected_delivery_date
+                                        ? new Date(
+                                            `${detail.expected_delivery_date}T00:00:00`
+                                        ).toLocaleDateString('id-ID')
+                                        : '-'}
+                                </strong>
+                            </div>
+
+                            <div>
+                                <small>Status</small>
+                                <span
+                                    className={`purchase-status status-${detail.status}`}
+                                >
+                                    {statusLabel(detail.status)}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="purchase-table-wrap">
+                            <table className="purchase-table">
+                                <thead>
+                                    <tr>
+                                        <th>Produk</th>
+                                        <th>Jumlah</th>
+                                        <th>Harga</th>
+                                        <th>Subtotal</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {(detail.items || []).map((item) => (
+                                        <tr key={item.id}>
+                                            <td>
+                                                <strong>
+                                                    {item.product_name ||
+                                                        item.product?.name ||
+                                                        '-'}
+                                                </strong>
+                                                <small>
+                                                    {item.product_description || ''}
+                                                </small>
+                                            </td>
+                                            <td>{item.qty_ordered}</td>
+                                            <td>{rupiah(item.agreed_price)}</td>
+                                            <td>{rupiah(item.total_price)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="purchase-detail-total">
+                            <span>Subtotal</span>
+                            <strong>{rupiah(detail.subtotal_price)}</strong>
+
+                            <span>Pajak / biaya</span>
+                            <strong>{rupiah(detail.tax)}</strong>
+
+                            <span>Total</span>
+                            <strong>{rupiah(detail.total_price)}</strong>
+                        </div>
+
+                        {detail.notes && (
+                            <p className="purchase-detail-notes">
+                                <strong>Catatan:</strong> {detail.notes}
+                            </p>
+                        )}
+
+                        <div className="purchase-modal-footer">
+                            <button
+                                type="button"
+                                className="purchase-secondary-btn"
+                                onClick={() => setDetail(null)}
+                            >
+                                Tutup
+                            </button>
+
+                            {allowedNext(detail.status).map((next) => (
+                                <button
+                                    key={next.value}
+                                    type="button"
+                                    className={
+                                        next.value === 'cancelled' ||
+                                        next.value === 'rejected'
+                                            ? 'purchase-danger-btn'
+                                            : 'purchase-primary-btn'
+                                    }
+                                    onClick={() =>
+                                        changeStatus(detail, next.value)
+                                    }
+                                >
+                                    {next.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+}
