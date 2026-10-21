@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import "../css/stock.css"
+import "../../css/stock.css"
 
 const Stock = () => {
     const [stocks, setStocks] = useState([]);

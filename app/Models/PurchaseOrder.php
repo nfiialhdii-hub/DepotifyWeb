@@ -11,6 +11,7 @@ class PurchaseOrder extends Model
         'po_date',
         'vendor_id',
         'created_by',
+        'payment_method',
         'expected_delivery_date',
         'shipping_address',
         'shipping_method',

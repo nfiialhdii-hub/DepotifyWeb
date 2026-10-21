@@ -19,7 +19,7 @@ class PurchaseOrderController extends Controller
 
     public function index(Request $request)
     {
-        return PurchaseOrder::with('vendor')
+        return PurchaseOrder::with(['vendor', 'items'])
             ->when($request->status, fn ($q, $v) => $q->where('status', $v))
             ->when($request->vendor_id, fn ($q, $v) => $q->where('vendor_id', $v))
             ->latest('po_date')
@@ -39,6 +39,7 @@ class PurchaseOrderController extends Controller
         $po = DB::transaction(function () use ($data, $request) {
             $po = PurchaseOrder::create([
                 ...Arr::except($data, ['items']),
+                'po_date' => now()->toDateString(),
                 'po_number' => $this->newNumber(),
                 'created_by' => $request->user()->id,
                 'status' => 'draft',
@@ -77,7 +78,7 @@ class PurchaseOrderController extends Controller
                 $po->items()->delete();
                 $this->saveItems($po, $data['items']);
             } else {
-                $po->update(['total_price' => $po->subtotal_price + $po->tax]);
+                $po->update(['total_price' => $po->subtotal_price]);
             }
         });
 
@@ -108,17 +109,13 @@ class PurchaseOrderController extends Controller
 
         return [
             'vendor_id' => $required . '|exists:vendor,id',
-            'po_date' => $required . '|date',
-            'expected_delivery_date' => 'nullable|date|after_or_equal:po_date',
+            'payment_method' => $required . '|in:cash,transfer,qris,credit',
             'shipping_address' => 'nullable|string|max:255',
-            'shipping_method' => 'nullable|string|max:50',
-            'tax' => 'sometimes|numeric|min:0',
             'notes' => 'nullable|string',
             'items' => ($partial ? 'sometimes' : 'required') . '|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.product_description' => 'nullable|string',
             'items.*.qty_ordered' => 'required|integer|min:1',
-            'items.*.agreed_price' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -129,7 +126,8 @@ class PurchaseOrderController extends Controller
 
         foreach ($items as $item) {
             $product = $products[$item['product_id']];
-            $price = $item['agreed_price'] ?? $product->purchase_price;
+            // Harga diambil dari data produk, bukan dari input form.
+            $price = (float) $product->purchase_price;
             $total = round($item['qty_ordered'] * $price, 2);
 
             $po->items()->create([
@@ -146,7 +144,7 @@ class PurchaseOrderController extends Controller
 
         $po->update([
             'subtotal_price' => $subtotal,
-            'total_price' => $subtotal + $po->tax,
+            'total_price' => $subtotal,
         ]);
     }
 

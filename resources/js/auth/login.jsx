@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import '../css/login.css';
+import '../../css/login.css';
 
 
 function Login({ onBack, onLoginSuccess }) {
@@ -30,6 +30,7 @@ function Login({ onBack, onLoginSuccess }) {
                     body: JSON.stringify({
                         email: email,
                         password: password,
+                        portal: 'owner',
                     }),
                 }
             );

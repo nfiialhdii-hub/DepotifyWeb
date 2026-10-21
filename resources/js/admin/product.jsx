@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import '../css/product.css';
+import '../../css/product.css';
 
 const EMPTY_FORM = {
     name: '',

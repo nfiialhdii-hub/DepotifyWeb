@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import '../css/category.css';
+import '../../css/category.css';
 
 const EMPTY_FORM = {
     code: '',

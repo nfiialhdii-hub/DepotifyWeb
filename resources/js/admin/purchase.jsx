@@ -1,23 +1,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import '../css/purchase.css';
+import '../../css/purchase.css';
 
 const API = '/api/v1';
 
 const emptyForm = () => ({
     vendor_id: '',
-    po_date: new Date().toISOString().slice(0, 10),
-    expected_delivery_date: '',
+    payment_method: 'cash',
     shipping_address: '',
-    shipping_method: '',
-    tax: '0',
     notes: '',
 });
 
 const emptyItem = () => ({
     product_id: '',
     qty_ordered: '1',
-    agreed_price: '',
 });
 
 function rupiah(value) {
@@ -30,15 +26,27 @@ function rupiah(value) {
 
 function statusLabel(status) {
     const labels = {
-        draft: 'Draft',
-        ordered: 'Dipesan',
-        confirmed: 'Dikonfirmasi',
-        shipped: 'Dikirim',
-        rejected: 'Ditolak',
-        cancelled: 'Dibatalkan',
+        draft: 'Pending',
+        ordered: 'Pending',
+        confirmed: 'Diproses',
+        shipped: 'Diproses',
+        received: 'Diproses',
+        rejected: 'Batal',
+        cancelled: 'Batal',
     };
 
     return labels[status] || status || '-';
+}
+
+function paymentMethodLabel(method) {
+    const labels = {
+        cash: 'Tunai',
+        transfer: 'Transfer bank',
+        qris: 'QRIS',
+        credit: 'Tempo / Utang',
+    };
+
+    return labels[method] || method || '-';
 }
 
 function unwrapList(result) {
@@ -135,6 +143,22 @@ export default function Purchases() {
         fetchData();
     }, [fetchData]);
 
+    // Kunci scroll halaman utama saat modal dibuka.
+    useEffect(() => {
+        const modalOpen = showForm || Boolean(detail);
+        if (!modalOpen) return;
+
+        const previousOverflow = document.body.style.overflow;
+        const previousHtmlOverflow = document.documentElement.style.overflow;
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            document.documentElement.style.overflow = previousHtmlOverflow;
+        };
+    }, [showForm, detail]);
+
     const filteredOrders = useMemo(() => {
         return orders.filter((order) => {
             const query = search.trim().toLowerCase();
@@ -145,23 +169,34 @@ export default function Purchases() {
                     String(value || '').toLowerCase().includes(query)
                 );
 
-            return (
-                matchesSearch &&
-                (!statusFilter || order.status === statusFilter)
-            );
+            const matchesStatus =
+                !statusFilter ||
+                (statusFilter === 'pending' &&
+                    ['draft', 'ordered'].includes(order.status)) ||
+                (statusFilter === 'diproses' &&
+                    ['confirmed', 'shipped', 'received'].includes(order.status)) ||
+                (statusFilter === 'dibatalkan' &&
+                    ['cancelled', 'rejected'].includes(order.status));
+
+            return matchesSearch && matchesStatus;
         });
     }, [orders, search, statusFilter]);
 
     const summary = useMemo(() => ({
         total: orders.length,
-        draft: orders.filter((item) => item.status === 'draft').length,
         process: orders.filter((item) =>
             ['ordered', 'confirmed', 'shipped'].includes(item.status)
         ).length,
-        value: orders.reduce(
-            (sum, item) => sum + Number(item.total_price || 0),
-            0
-        ),
+        // Nilai pesanan baru dihitung setelah supplier memproses/konfirmasi.
+        // Pesanan pending atau dibatalkan tidak masuk ke total nilai.
+        value: orders
+            .filter((item) =>
+                ['confirmed', 'shipped', 'received'].includes(item.status)
+            )
+            .reduce(
+                (sum, item) => sum + Number(item.total_price || 0),
+                0
+            ),
     }), [orders]);
 
     const updateForm = (event) => {
@@ -185,16 +220,16 @@ export default function Purchases() {
         );
     };
 
+    // Harga satuan untuk sementara mengikuti harga beli pada data produk.
+    // Harga khusus per supplier akan disambungkan saat menu Supplier dikerjakan.
     const subtotal = items.reduce((sum, item) => {
         const product = selectedProduct(item.product_id);
-        const price = item.agreed_price === ''
-            ? Number(product?.purchase_price || 0)
-            : Number(item.agreed_price || 0);
+        const price = Number(product?.purchase_price || 0);
 
         return sum + Number(item.qty_ordered || 0) * price;
     }, 0);
 
-    const total = subtotal + Number(form.tax || 0);
+    const total = subtotal;
 
     const openCreate = () => {
         setError('');
@@ -235,20 +270,12 @@ export default function Purchases() {
                 method: 'POST',
                 body: JSON.stringify({
                     vendor_id: Number(form.vendor_id),
-                    po_date: form.po_date,
-                    expected_delivery_date:
-                        form.expected_delivery_date || null,
+                    payment_method: form.payment_method,
                     shipping_address: form.shipping_address || null,
-                    shipping_method: form.shipping_method || null,
-                    tax: Number(form.tax || 0),
                     notes: form.notes || null,
                     items: items.map((item) => ({
                         product_id: Number(item.product_id),
                         qty_ordered: Number(item.qty_ordered),
-                        agreed_price:
-                            item.agreed_price === ''
-                                ? null
-                                : Number(item.agreed_price),
                     })),
                 }),
             });
@@ -260,7 +287,7 @@ export default function Purchases() {
                     result.po_number ||
                     result.data?.po_number ||
                     'baru'
-                } berhasil dibuat sebagai draft.`
+                } berhasil dibuat dengan status Pending.`
             );
 
             await fetchData();
@@ -388,15 +415,6 @@ export default function Purchases() {
                 </article>
 
                 <article className="purchase-summary-card">
-                    <span className="purchase-summary-icon amber">◷</span>
-                    <div>
-                        <p>Draft</p>
-                        <strong>{summary.draft}</strong>
-                        <small>Belum dikirim ke supplier</small>
-                    </div>
-                </article>
-
-                <article className="purchase-summary-card">
                     <span className="purchase-summary-icon blue">⇄</span>
                     <div>
                         <p>Dalam Proses</p>
@@ -449,18 +467,13 @@ export default function Purchases() {
 
                     <select
                         value={statusFilter}
-                        onChange={(event) =>
-                            setStatusFilter(event.target.value)
-                        }
-                        aria-label="Filter status"
+                        onChange={(event) => setStatusFilter(event.target.value)}
+                        aria-label="Filter status pembelian"
                     >
                         <option value="">Semua Status</option>
-                        <option value="draft">Draft</option>
-                        <option value="ordered">Dipesan</option>
-                        <option value="confirmed">Dikonfirmasi</option>
-                        <option value="shipped">Dikirim</option>
-                        <option value="rejected">Ditolak</option>
-                        <option value="cancelled">Dibatalkan</option>
+                        <option value="pending">Pending</option>
+                        <option value="diproses">Diproses</option>
+                        <option value="dibatalkan">Dibatalkan</option>
                     </select>
                 </div>
 
@@ -479,7 +492,7 @@ export default function Purchases() {
                                 : 'Buat Purchase Order pertama untuk mulai mencatat pesanan ke supplier.'}
                         </p>
 
-                        {!search && !statusFilter && (
+                        {!search && (
                             <button
                                 className="purchase-primary-btn"
                                 type="button"
@@ -495,9 +508,8 @@ export default function Purchases() {
                             <thead>
                                 <tr>
                                     <th>Nomor PO</th>
-                                    <th>Tanggal</th>
                                     <th>Supplier</th>
-                                    <th>Estimasi Tiba</th>
+                                    <th>Metode Pembayaran</th>
                                     <th>Total</th>
                                     <th>Status</th>
                                     <th>Aksi</th>
@@ -517,14 +529,6 @@ export default function Purchases() {
                                         </td>
 
                                         <td>
-                                            {order.po_date
-                                                ? new Date(
-                                                    `${order.po_date}T00:00:00`
-                                                ).toLocaleDateString('id-ID')
-                                                : '-'}
-                                        </td>
-
-                                        <td>
                                             <strong>
                                                 {order.vendor?.name || '-'}
                                             </strong>
@@ -534,11 +538,7 @@ export default function Purchases() {
                                         </td>
 
                                         <td>
-                                            {order.expected_delivery_date
-                                                ? new Date(
-                                                    `${order.expected_delivery_date}T00:00:00`
-                                                ).toLocaleDateString('id-ID')
-                                                : '-'}
+                                            {paymentMethodLabel(order.payment_method)}
                                         </td>
 
                                         <td>
@@ -549,7 +549,7 @@ export default function Purchases() {
 
                                         <td>
                                             <span
-                                                className={`purchase-status status-${order.status}`}
+                                                className={`purchase-status status-${['draft', 'ordered'].includes(order.status) ? 'pending' : ['confirmed', 'shipped', 'received'].includes(order.status) ? 'process' : 'cancelled'}`}
                                             >
                                                 {statusLabel(order.status)}
                                             </span>
@@ -620,7 +620,7 @@ export default function Purchases() {
                     }}
                 >
                     <form
-                        className="purchase-modal"
+                        className="purchase-modal purchase-create-modal"
                         onSubmit={submitOrder}
                     >
                         <div className="purchase-modal-header">
@@ -666,35 +666,18 @@ export default function Purchases() {
                             </label>
 
                             <label>
-                                Tanggal Pesanan
-                                <input
-                                    type="date"
-                                    name="po_date"
-                                    value={form.po_date}
+                                Metode Pembayaran
+                                <select
+                                    name="payment_method"
+                                    value={form.payment_method}
                                     onChange={updateForm}
                                     required
-                                />
-                            </label>
-
-                            <label>
-                                Estimasi Tiba
-                                <input
-                                    type="date"
-                                    name="expected_delivery_date"
-                                    value={form.expected_delivery_date}
-                                    onChange={updateForm}
-                                    min={form.po_date}
-                                />
-                            </label>
-
-                            <label>
-                                Metode Pengiriman
-                                <input
-                                    name="shipping_method"
-                                    value={form.shipping_method}
-                                    onChange={updateForm}
-                                    placeholder="Contoh: Diantar supplier"
-                                />
+                                >
+                                    <option value="cash">Tunai</option>
+                                    <option value="transfer">Transfer bank</option>
+                                    <option value="qris">QRIS</option>
+                                    <option value="credit">Tempo / Utang</option>
+                                </select>
                             </label>
 
                             <label className="purchase-form-full">
@@ -712,8 +695,7 @@ export default function Purchases() {
                             <div>
                                 <h3>Barang yang Dipesan</h3>
                                 <p>
-                                    Harga awal mengikuti harga beli produk
-                                    dan bisa disesuaikan.
+                                    Harga satuan mengikuti harga beli pada data produk.
                                 </p>
                             </div>
 
@@ -735,9 +717,7 @@ export default function Purchases() {
                             {items.map((item, index) => {
                                 const product = selectedProduct(item.product_id);
 
-                                const price = item.agreed_price === ''
-                                    ? Number(product?.purchase_price || 0)
-                                    : Number(item.agreed_price);
+                                const price = Number(product?.purchase_price || 0);
 
                                 return (
                                     <div
@@ -805,20 +785,10 @@ export default function Purchases() {
                                         <label>
                                             Harga Satuan
                                             <input
-                                                type="number"
-                                                min="0"
-                                                step="1"
-                                                placeholder={String(
-                                                    product?.purchase_price || 0
-                                                )}
-                                                value={item.agreed_price}
-                                                onChange={(event) =>
-                                                    updateItem(
-                                                        index,
-                                                        'agreed_price',
-                                                        event.target.value
-                                                    )
-                                                }
+                                                type="text"
+                                                value={product ? rupiah(price) : 'Pilih produk'}
+                                                readOnly
+                                                aria-label="Harga satuan dari data produk"
                                             />
                                         </label>
 
@@ -865,29 +835,10 @@ export default function Purchases() {
                                 />
                             </label>
 
-                            <label>
-                                Pajak / Biaya Tambahan (Rp)
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    name="tax"
-                                    value={form.tax}
-                                    onChange={updateForm}
-                                />
-                            </label>
-
                             <div className="purchase-total-box">
-                                <span>Subtotal</span>
-                                <strong>{rupiah(subtotal)}</strong>
-
-                                <span>Pajak / biaya</span>
-                                <strong>{rupiah(form.tax)}</strong>
-
-                                <div>
-                                    <span>Total Pesanan</span>
-                                    <strong>{rupiah(total)}</strong>
-                                </div>
+                                <span>Total pembelian</span>
+                                <strong>{rupiah(total)}</strong>
+                                <small>Jumlah dihitung dari kuantitas × harga satuan produk.</small>
                             </div>
                         </div>
 
@@ -925,7 +876,7 @@ export default function Purchases() {
                             >
                                 {saving
                                     ? 'Menyimpan...'
-                                    : 'Simpan sebagai Draft'}
+                                    : 'Simpan Pembelian'}
                             </button>
                         </div>
                     </form>
@@ -968,25 +919,13 @@ export default function Purchases() {
 
                         <div className="purchase-detail-meta">
                             <div>
-                                <small>Tanggal Pesanan</small>
-                                <strong>
-                                    {detail.po_date
-                                        ? new Date(
-                                            `${detail.po_date}T00:00:00`
-                                        ).toLocaleDateString('id-ID')
-                                        : '-'}
-                                </strong>
+                                <small>Metode Pembayaran</small>
+                                <strong>{paymentMethodLabel(detail.payment_method)}</strong>
                             </div>
 
                             <div>
-                                <small>Estimasi Tiba</small>
-                                <strong>
-                                    {detail.expected_delivery_date
-                                        ? new Date(
-                                            `${detail.expected_delivery_date}T00:00:00`
-                                        ).toLocaleDateString('id-ID')
-                                        : '-'}
-                                </strong>
+                                <small>Total Pembelian</small>
+                                <strong>{rupiah(detail.total_price)}</strong>
                             </div>
 
                             <div>
@@ -1033,13 +972,7 @@ export default function Purchases() {
                         </div>
 
                         <div className="purchase-detail-total">
-                            <span>Subtotal</span>
-                            <strong>{rupiah(detail.subtotal_price)}</strong>
-
-                            <span>Pajak / biaya</span>
-                            <strong>{rupiah(detail.tax)}</strong>
-
-                            <span>Total</span>
+                            <span>Total pembelian</span>
                             <strong>{rupiah(detail.total_price)}</strong>
                         </div>
 

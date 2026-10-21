@@ -17,8 +17,12 @@ class AuthController extends Controller
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
+            'portal' => ['sometimes', 'in:owner,vendor'],
         ]);
 
+        // Form login yang ada saat ini adalah portal Owner. Portal Supplier
+        // dapat menggunakan endpoint yang sama dengan mengirim portal=vendor.
+        $portal = $credentials['portal'] ?? 'owner';
         $user = User::where('email', $credentials['email'])->first();
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
@@ -34,6 +38,17 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Akun tidak aktif.',
+                'error_code' => 'FORBIDDEN_ROLE',
+                'errors' => [],
+            ], 403);
+        }
+
+        if ($user->role !== $portal) {
+            return response()->json([
+                'success' => false,
+                'message' => $portal === 'owner'
+                    ? 'Akun ini bukan akun Owner. Supplier menggunakan halaman login Supplier.'
+                    : 'Akun ini bukan akun Supplier.',
                 'error_code' => 'FORBIDDEN_ROLE',
                 'errors' => [],
             ], 403);

@@ -2,75 +2,170 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class VendorController extends Controller
 {
     public function index(Request $request)
     {
-        return Vendor::with('categories')
-            ->when($request->search, fn ($q, $v) => $q->where('name', 'like', "%{$v}%"))
+        $this->ensureOwner($request);
+
+        return Vendor::with([
+            'categories',
+            'user:id,name,email,role,is_active',
+        ])
+            ->when($request->search, fn ($query, $value) => $query->where('name', 'like', "%{$value}%"))
             ->orderBy('name')
             ->paginate(15);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        return Vendor::with('categories')->findOrFail($id);
+        $this->ensureOwner($request);
+
+        return Vendor::with([
+            'categories',
+            'user:id,name,email,role,is_active',
+        ])->findOrFail($id);
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate($this->rules());
+        $this->ensureOwner($request);
 
-        $vendor = Vendor::create(collect($data)->except('category_ids')->all());
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string'],
+            'account_email' => ['required', 'email', 'max:150', 'unique:users,email'],
+            'account_password' => ['required', 'string', 'min:8', 'confirmed'],
+            'category_ids' => ['sometimes', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
+        ]);
 
-        if (isset($data['category_ids'])) {
-            $vendor->categories()->sync($data['category_ids']);
-        }
+        $vendor = DB::transaction(function () use ($data) {
+            $user = User::create([
+                'name' => $data['name'],
+                'email' => $data['account_email'],
+                'phone' => $data['phone'] ?? null,
+                'password' => $data['account_password'],
+                'role' => User::ROLE_VENDOR,
+                'is_active' => true,
+            ]);
 
-        return response()->json($vendor->load('categories'), 201);
+            $vendor = Vendor::create([
+                'user_id' => $user->id,
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'address' => $data['address'] ?? null,
+            ]);
+
+            if (isset($data['category_ids'])) {
+                $vendor->categories()->sync($data['category_ids']);
+            }
+
+            return $vendor;
+        });
+
+        return response()->json(
+            $vendor->load(['categories', 'user:id,name,email,role,is_active']),
+            201
+        );
     }
 
     public function update(Request $request, $id)
     {
-        $vendor = Vendor::findOrFail($id);
+        $this->ensureOwner($request);
+        $vendor = Vendor::with('user')->findOrFail($id);
+        $passwordRule = $vendor->user_id
+            ? ['nullable', 'string', 'min:8', 'confirmed']
+            : ['required', 'string', 'min:8', 'confirmed'];
 
-        $data = $request->validate($this->rules(true));
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string'],
+            'account_email' => [
+                'required', 'email', 'max:150',
+                Rule::unique('users', 'email')->ignore($vendor->user_id),
+            ],
+            'account_password' => $passwordRule,
+            'category_ids' => ['sometimes', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
+        ]);
 
-        $vendor->update(collect($data)->except('category_ids')->all());
+        $vendor = DB::transaction(function () use ($vendor, $data) {
+            $userData = [
+                'name' => $data['name'],
+                'email' => $data['account_email'],
+                'phone' => $data['phone'] ?? null,
+                'role' => User::ROLE_VENDOR,
+                'is_active' => true,
+            ];
 
-        if (isset($data['category_ids'])) {
-            $vendor->categories()->sync($data['category_ids']);
-        }
+            if (!empty($data['account_password'])) {
+                $userData['password'] = $data['account_password'];
+            }
 
-        return $vendor->load('categories');
+            if ($vendor->user) {
+                $vendor->user->update($userData);
+            } else {
+                $vendor->user()->associate(User::create($userData));
+            }
+
+            $vendor->fill([
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'address' => $data['address'] ?? null,
+            ]);
+            $vendor->save();
+
+            if (isset($data['category_ids'])) {
+                $vendor->categories()->sync($data['category_ids']);
+            }
+
+            return $vendor;
+        });
+
+        return $vendor->load(['categories', 'user:id,name,email,role,is_active']);
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $vendor = Vendor::findOrFail($id);
+        $this->ensureOwner($request);
+        $vendor = Vendor::with('user')->findOrFail($id);
 
         if ($vendor->purchaseOrders()->exists()) {
-            return response()->json(['message' => 'Vendor sudah punya Purchase Order, tidak bisa dihapus.'], 409);
+            return response()->json([
+                'message' => 'Supplier sudah memiliki pesanan pembelian, sehingga tidak bisa dihapus.',
+            ], 409);
         }
 
-        $vendor->categories()->detach();
-        $vendor->delete();
+        DB::transaction(function () use ($vendor) {
+            $user = $vendor->user;
+            $vendor->categories()->detach();
+            $vendor->delete();
 
-        return response()->json(['message' => 'Vendor dihapus.']);
+            // Akun yang dibuat khusus untuk supplier ikut dihapus agar tidak menjadi akun yatim.
+            if ($user && $user->role === User::ROLE_VENDOR) {
+                $user->tokens()->delete();
+                $user->delete();
+            }
+        });
+
+        return response()->json(['message' => 'Data supplier dan akun loginnya berhasil dihapus.']);
     }
 
-    private function rules(bool $partial = false): array
+    private function ensureOwner(Request $request): void
     {
-        return [
-            'name' => ($partial ? 'sometimes|required' : 'required') . '|string|max:150',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'user_id' => 'nullable|exists:users,id',
-            'category_ids' => 'sometimes|array',
-            'category_ids.*' => 'exists:categories,id',
-        ];
+        abort_unless(
+            $request->user() && $request->user()->isOwner(),
+            403,
+            'Hanya owner yang boleh mengelola data dan akun supplier.'
+        );
     }
 }

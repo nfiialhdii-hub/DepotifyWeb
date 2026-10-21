@@ -95,7 +95,7 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
                 >
 
                     <span>
-                        ↪
+
                     </span>
 
                     <span>

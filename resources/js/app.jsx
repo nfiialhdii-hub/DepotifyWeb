@@ -1,8 +1,8 @@
 import '../css/app.css';
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import Login from './login';
-import Dashboard from './dashboard';
+import Login from './auth/login';
+import Dashboard from './admin/dashboard';
 
 
 function LandingPage({ onOwnerLogin }) {
@@ -43,7 +43,7 @@ function LandingPage({ onOwnerLogin }) {
                         </h1>
 
                         <p className="hero-description">
-                            Sistem pengelolaan inventori gas LPG dan air
+                            Sistem pengelolaan  gas LPG dan air
                             mineral yang membantu pemilik depot mengelola
                             stok, transaksi, dan laporan dengan lebih mudah.
                         </p>

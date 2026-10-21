@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import '../css/dashboard.css';
+import '../../css/dashboard.css';
 
-import Sidebar from './components/sidebar';
+import Sidebar from '../components/sidebar';
+
 import Products from './product';
 import Category from './category';
 import Stock from './stock';
