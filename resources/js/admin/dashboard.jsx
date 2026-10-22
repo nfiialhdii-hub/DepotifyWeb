@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import '../../css/dashboard.css';
 
 import Sidebar from '../components/sidebar';
+import { emitSessionInvalidated } from '../utils/session';
 
 import Products from './product';
 import Category from './category';
@@ -10,7 +11,7 @@ import Stock from './stock';
 import Purchases from './purchase';
 import Vendors from './vendor';
 
-function Dashboard({ onLogout }) {
+function Dashboard({ user, onLogout }) {
 
     const [activePage, setActivePage] = useState('dashboard');
 
@@ -34,14 +35,16 @@ function Dashboard({ onLogout }) {
                 localStorage.getItem('depotify_token');
 
             if (!token) {
-                throw new Error(
-                    'Token login tidak ditemukan.'
+                emitSessionInvalidated(
+                    'missing_token',
+                    'Token login tidak ditemukan. Silakan login kembali.'
                 );
+                return;
             }
 
 
             const response = await fetch(
-                'http://127.0.0.1:8000/api/v1/dashboard',
+                '/api/v1/dashboard',
                 {
                     method: 'GET',
 
@@ -56,7 +59,15 @@ function Dashboard({ onLogout }) {
 
 
             const result =
-                await response.json();
+                await response.json().catch(() => ({}));
+
+            if (response.status === 401) {
+                emitSessionInvalidated(
+                    'unauthorized',
+                    'Sesi login Anda telah berakhir. Silakan login kembali.'
+                );
+                return;
+            }
 
 
             if (!response.ok) {
@@ -107,55 +118,9 @@ function Dashboard({ onLogout }) {
     // =========================
 
     const handleLogout = async () => {
-
-        try {
-
-            const token =
-                localStorage.getItem(
-                    'depotify_token'
-                );
-
-
-            if (token) {
-
-                await fetch(
-                    'http://127.0.0.1:8000/api/v1/auth/logout',
-                    {
-                        method: 'POST',
-
-                        headers: {
-                            Accept:
-                                'application/json',
-
-                            Authorization:
-                                `Bearer ${token}`,
-                        },
-                    }
-                );
-
-            }
-
-        } catch (error) {
-
-            console.error(
-                'LOGOUT ERROR:',
-                error
-            );
-
-        } finally {
-
-            localStorage.removeItem(
-                'depotify_token'
-            );
-
-            localStorage.removeItem(
-                'depotify_user'
-            );
-
-            onLogout();
-
+        if (typeof onLogout === 'function') {
+            await onLogout();
         }
-
     };
 
 
@@ -299,10 +264,6 @@ function Dashboard({ onLogout }) {
                             {summary.today_transactions}
                         </h2>
 
-                        <p>
-                            transaksi selesai
-                        </p>
-
                     </div>
 
 
@@ -328,10 +289,6 @@ function Dashboard({ onLogout }) {
                             )}
                         </h2>
 
-                        <p>
-                            total penjualan
-                        </p>
-
                     </div>
 
 
@@ -355,10 +312,6 @@ function Dashboard({ onLogout }) {
                             {summary.total_products}
                         </h2>
 
-                        <p>
-                            produk tersedia
-                        </p>
-
                     </div>
 
 
@@ -381,10 +334,6 @@ function Dashboard({ onLogout }) {
                         <h2>
                             {summary.low_stock_products}
                         </h2>
-
-                        <p>
-                            perlu diperhatikan
-                        </p>
 
                     </div>
 
@@ -818,6 +767,7 @@ function Dashboard({ onLogout }) {
         <div className="dashboard-layout">
 
             <Sidebar
+                user={user}
                 activePage={activePage}
                 onNavigate={setActivePage}
                 onLogout={handleLogout}

@@ -10,9 +10,9 @@ class GoodsReceiptItem extends Model
         'goods_receipt_id',
         'purchase_order_item_id',
         'product_id',
-        'qty_accepted',
-        'qty_rejected',
-        'qc_notes',
+        'qty_diterima',
+        'qty_ditolak',
+        'catatan_qc',
     ];
 
     public function goodsReceipt()

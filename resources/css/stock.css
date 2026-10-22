@@ -1,278 +1,262 @@
 /* =========================================================
-   STOCK PAGE
-========================================================= */
+   DEPOTIFY - NEUMORPHISM STOCK PAGE
+   ========================================================= */
 
 .stock-page {
     width: 100%;
     min-height: 100%;
-    padding: 32px 40px 50px;
+    padding: 4px 0 32px;
     box-sizing: border-box;
+    font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-
-/* =========================================================
-   HEADER
-========================================================= */
-
 .stock-header {
-    margin-bottom: 26px;
+    margin-bottom: 22px;
+    padding: 20px 26px;
+    border-radius: 22px;
+    background: #ebeff5;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow:
+        8px 8px 18px #c8d0dc,
+        -8px -8px 18px #ffffff;
 }
 
 .stock-header h1 {
-    margin: 0 0 8px;
-    color: #203554;
-    font-size: 30px;
-    font-weight: 700;
+    margin: 0 0 5px;
+    color: #242933;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
 }
 
 .stock-header p {
     margin: 0;
-    color: #718096;
-    font-size: 15px;
+    color: #7d8797;
+    font-size: 13px;
 }
-
-
-/* =========================================================
-   ERROR
-========================================================= */
 
 .stock-error {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     padding: 14px 18px;
-    border-radius: 10px;
-    background: #fff1f1;
-    border: 1px solid #f3b5b5;
-    color: #c0392b;
-    font-size: 14px;
+    border-radius: 16px;
+    background: #ebeff5;
+    border: 1px solid rgba(201, 74, 74, 0.28);
+    box-shadow:
+        inset 3px 3px 7px #c8d0dc,
+        inset -3px -3px 7px #ffffff;
+    color: #b43636;
+    font-size: 13px;
+    font-weight: 700;
 }
 
-
 /* =========================================================
-   SUMMARY
-========================================================= */
+   SUMMARY ("OVERALL DATA" REFERENCE STYLE)
+   ========================================================= */
 
 .stock-summary {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 18px;
     margin-bottom: 24px;
+    padding: 22px;
+    border-radius: 24px;
+    background: #ebeff5;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow:
+        10px 10px 22px #c8d0dc,
+        -10px -10px 22px #ffffff;
 }
 
 .stock-summary-card {
-    padding: 22px;
-    background: #ffffff;
-    border: 1px solid #e5e9ef;
-    border-radius: 14px;
-    box-shadow: 0 5px 18px rgba(32, 53, 84, 0.06);
+    position: relative;
+    padding: 18px 20px;
+    background: #e6ebf3;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 16px;
+    box-shadow:
+        inset 4px 4px 8px #c8d0dc,
+        inset -4px -4px 8px #ffffff;
+    overflow: hidden;
+}
+
+.stock-summary-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 16px;
+    right: 16px;
+    height: 3px;
+    border-radius: 0 0 999px 999px;
+    background: linear-gradient(90deg, #16a34a 0%, #0284c7 100%);
+}
+
+.stock-summary-card:nth-child(1) strong {
+    color: #0284c7;
+}
+
+.stock-summary-card:nth-child(2) strong {
+    color: #16a34a;
+}
+
+.stock-summary-card:nth-child(3) strong {
+    color: #d97706;
+}
+
+.stock-summary-card:nth-child(4) strong {
+    color: #dc2626;
 }
 
 .stock-summary-card span {
     display: block;
-    margin-bottom: 10px;
-    color: #718096;
-    font-size: 14px;
-    font-weight: 500;
+    margin-bottom: 8px;
+    color: #848f9f;
+    font-size: 11.5px;
+    font-weight: 700;
 }
 
 .stock-summary-card strong {
     display: block;
-    color: #203554;
-    font-size: 28px;
-    font-weight: 700;
+    color: #242933;
+    font-size: 24px;
+    font-weight: 800;
 }
 
-
 /* =========================================================
-   CONTENT
-========================================================= */
+   CONTENT PANEL & TABLE
+   ========================================================= */
 
 .stock-content {
     width: 100%;
-    background: #ffffff;
-    border: 1px solid #e5e9ef;
-    border-radius: 14px;
-    box-shadow: 0 5px 18px rgba(32, 53, 84, 0.06);
+    padding: 20px 24px;
+    background: #ebeff5;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    border-radius: 24px;
+    box-shadow:
+        10px 10px 22px #c8d0dc,
+        -10px -10px 22px #ffffff;
     overflow: hidden;
 }
-
-
-/* =========================================================
-   TOOLBAR
-========================================================= */
 
 .stock-toolbar {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 20px;
-    border-bottom: 1px solid #edf0f4;
-}
-
-.stock-toolbar input,
-.stock-toolbar select {
-    height: 42px;
-    padding: 0 14px;
-    border: 1px solid #d9dee7;
-    border-radius: 9px;
-    background: #ffffff;
-    color: #203554;
-    font-family: inherit;
-    font-size: 14px;
-    outline: none;
-    box-sizing: border-box;
+    gap: 14px;
+    padding-bottom: 18px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(196, 205, 218, 0.55);
 }
 
 .stock-toolbar input {
-    width: 320px;
+    width: 340px;
+    height: 44px;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    border-radius: 999px;
+    background: #e5eaf2;
+    color: #242933;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow:
+        inset 4px 4px 8px #c6cedb,
+        inset -4px -4px 8px #ffffff;
+    outline: none;
 }
 
 .stock-toolbar select {
-    min-width: 180px;
+    min-width: 190px;
+    height: 44px;
+    padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 999px;
+    background: #ebeff5;
+    color: #242933;
+    font-size: 12.5px;
+    font-weight: 700;
+    box-shadow:
+        4px 4px 9px #c8d0dc,
+        -4px -4px 9px #ffffff;
+    outline: none;
     cursor: pointer;
 }
-
-.stock-toolbar input::placeholder {
-    color: #9aa5b5;
-}
-
-.stock-toolbar input:focus,
-.stock-toolbar select:focus {
-    border-color: #59cc8c;
-    box-shadow: 0 0 0 3px rgba(89, 204, 140, 0.12);
-}
-
-
-/* =========================================================
-   TABLE WRAPPER
-========================================================= */
 
 .stock-table-wrapper {
     width: 100%;
     overflow-x: auto;
 }
 
-
-/* =========================================================
-   TABLE
-========================================================= */
-
 .stock-table {
     width: 100%;
-    min-width: 850px;
+    min-width: 820px;
     border-collapse: collapse;
 }
 
-.stock-table thead {
-    background: #f7f8fa;
-}
-
 .stock-table th {
-    padding: 15px 18px;
-    border-bottom: 1px solid #e5e9ef;
-    color: #5f6f84;
-    font-size: 12px;
-    font-weight: 700;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(196, 205, 218, 0.65);
+    color: #242933;
+    font-size: 11px;
+    font-weight: 800;
     text-align: left;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.4px;
     white-space: nowrap;
 }
 
 .stock-table td {
-    padding: 17px 18px;
-    border-bottom: 1px solid #edf0f4;
-    color: #334155;
-    font-size: 14px;
+    padding: 16px;
+    border-bottom: 1px solid rgba(196, 205, 218, 0.42);
+    color: #485262;
+    font-size: 13px;
+    font-weight: 600;
     white-space: nowrap;
-}
-
-.stock-table tbody tr {
-    transition: background 0.15s ease;
-}
-
-.stock-table tbody tr:hover {
-    background: #f9fbfa;
 }
 
 .stock-table tbody tr:last-child td {
     border-bottom: none;
 }
 
-
-/* =========================================================
-   STOCK STATUS
-========================================================= */
-
 .stock-status {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 72px;
-    padding: 6px 12px;
+    min-width: 76px;
+    padding: 5px 12px;
     border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
+    background: #ebeff5;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    box-shadow:
+        3px 3px 7px #c8d0dc,
+        -3px -3px 7px #ffffff;
+    font-size: 11.5px;
+    font-weight: 800;
 }
 
 .stock-status-aman {
-    background: #e5f8ed;
-    color: #218c56;
+    color: #1f7a50;
 }
 
 .stock-status-menipis {
-    background: #fff4dc;
-    color: #b7791f;
+    color: #b86b19;
 }
 
 .stock-status-habis {
-    background: #ffe7e7;
-    color: #c0392b;
+    color: #b43636;
 }
 
-
-/* =========================================================
-   EMPTY
-========================================================= */
-
-.stock-empty {
-    padding: 45px 20px !important;
-    color: #8a96a8 !important;
-    text-align: center !important;
-}
-
-
-/* =========================================================
-   LOADING
-========================================================= */
-
+.stock-empty,
 .stock-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 300px;
-    color: #718096;
-    font-size: 15px;
+    padding: 45px 20px !important;
+    color: #7d8797 !important;
+    text-align: center !important;
+    font-weight: 700;
 }
-
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
 
 @media (max-width: 1100px) {
-
     .stock-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-
 }
 
 @media (max-width: 700px) {
-
-    .stock-page {
-        padding: 24px 20px 40px;
-    }
-
     .stock-summary {
         grid-template-columns: 1fr;
     }
@@ -286,5 +270,4 @@
     .stock-toolbar select {
         width: 100%;
     }
-
 }

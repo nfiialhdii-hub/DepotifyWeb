@@ -163,7 +163,7 @@ function Category() {
 
 
             let url =
-                'http://127.0.0.1:8000/api/v1/categories';
+                '/api/v1/categories';
 
 
             const params =
@@ -425,9 +425,9 @@ function Category() {
 
             const url = isEdit
 
-                ? `http://127.0.0.1:8000/api/v1/categories/${editingCategory.id}`
+                ? `/api/v1/categories/${editingCategory.id}`
 
-                : 'http://127.0.0.1:8000/api/v1/categories';
+                : '/api/v1/categories';
 
 
             const method =
@@ -655,7 +655,7 @@ function Category() {
 
             const response =
                 await fetch(
-                    `http://127.0.0.1:8000/api/v1/categories/${deletingCategory.id}`,
+                    `/api/v1/categories/${deletingCategory.id}`,
 
                     {
                         method: 'DELETE',

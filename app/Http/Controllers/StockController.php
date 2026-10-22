@@ -3,13 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\StockMovement;
+use App\Models\User;
+use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
 {
     public function index(Request $request)
     {
-        $products = Product::with('category')
+        $user = $request->user();
+        $query = Product::with('category');
+
+        if ($user && $user->isVendor()) {
+            $vendor = $this->resolveVendor($user);
+            $query->where('vendor_id', $vendor->id);
+        } else {
+            $query->whereNull('vendor_id');
+        }
+
+        $products = $query
             ->when(
                 $request->search,
                 function ($query, $value) {
@@ -76,9 +90,20 @@ class StockController extends Controller
         ], 200);
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $product = Product::with('category')->findOrFail($id);
+        $user = $request->user();
+
+        if ($user && $user->isVendor()) {
+            $vendor = $this->resolveVendor($user);
+            if ((int) $product->vendor_id !== (int) $vendor->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses ke stok produk ini.',
+                ], 403);
+            }
+        }
 
         $stockContent = (int) $product->stock_content;
         $minimumStock = (int) $product->minimum_stock;
@@ -111,5 +136,76 @@ class StockController extends Controller
                 'is_active' => (bool) $product->is_active,
             ],
         ], 200);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
+        $user = $request->user();
+
+        if ($user && $user->isVendor()) {
+            $vendor = $this->resolveVendor($user);
+            if ((int) $product->vendor_id !== (int) $vendor->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk mengubah stok produk ini.',
+                ], 403);
+            }
+        }
+
+        $validated = $request->validate([
+            'stock_content' => ['required', 'integer', 'min:0'],
+            'empty_stock' => ['nullable', 'integer', 'min:0'],
+            'minimum_stock' => ['nullable', 'integer', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        DB::transaction(function () use ($product, $validated, $user) {
+            $previousStock = (int) $product->stock_content;
+            $newStock = (int) $validated['stock_content'];
+            $diff = $newStock - $previousStock;
+
+            $product->update([
+                'stock_content' => $newStock,
+                'empty_stock' => isset($validated['empty_stock'])
+                    ? (int) $validated['empty_stock']
+                    : (int) $product->empty_stock,
+                'minimum_stock' => isset($validated['minimum_stock'])
+                    ? (int) $validated['minimum_stock']
+                    : (int) $product->minimum_stock,
+            ]);
+
+            if ($diff !== 0) {
+                StockMovement::create([
+                    'product_id' => $product->id,
+                    'stock_type' => 'fill',
+                    'movement_type' => $diff > 0 ? 'in' : 'adjustment',
+                    'qty' => abs($diff),
+                    'ending_balance' => $newStock,
+                    'reference_type' => 'stock_adjustment',
+                    'reference_id' => $product->id,
+                    'description' => $validated['notes'] ?? 'Penyesuaian stok gudang',
+                    'created_by' => $user->id,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Stok berhasil diperbarui.',
+            'data' => $product->fresh('category'),
+        ]);
+    }
+
+    private function resolveVendor(User $user): Vendor
+    {
+        return Vendor::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'address' => null,
+            ]
+        );
     }
 }

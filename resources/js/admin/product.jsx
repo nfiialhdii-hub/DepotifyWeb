@@ -118,7 +118,7 @@ function Products() {
             }
 
             let url =
-                'http://127.0.0.1:8000/api/v1/products';
+                '/api/v1/products';
 
             const params = new URLSearchParams();
 
@@ -193,7 +193,7 @@ function Products() {
             }
 
             const response = await fetch(
-                'http://127.0.0.1:8000/api/v1/categories',
+                '/api/v1/categories',
                 {
                     method: 'GET',
 
@@ -389,8 +389,8 @@ function Products() {
                 Boolean(editingProduct);
 
             const url = isEdit
-                ? `http://127.0.0.1:8000/api/v1/products/${editingProduct.id}`
-                : 'http://127.0.0.1:8000/api/v1/products';
+                ? `/api/v1/products/${editingProduct.id}`
+                : '/api/v1/products';
 
             const method = isEdit
                 ? 'PUT'
@@ -579,7 +579,7 @@ function Products() {
 
             const response =
                 await fetch(
-                    `http://127.0.0.1:8000/api/v1/products/${deletingProduct.id}`,
+                    `/api/v1/products/${deletingProduct.id}`,
                     {
                         method: 'DELETE',
 

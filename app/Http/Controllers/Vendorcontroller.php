@@ -160,6 +160,103 @@ class VendorController extends Controller
         return response()->json(['message' => 'Data supplier dan akun loginnya berhasil dihapus.']);
     }
 
+    /**
+     * Ambil profil supplier yang sedang login (role: vendor)
+     */
+    public function profile(Request $request)
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user && $user->isVendor(),
+            403,
+            'Hanya supplier yang dapat mengakses profil supplier.'
+        );
+
+        $vendor = Vendor::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'address' => null,
+            ]
+        )->load([
+            'categories',
+            'user:id,name,email,phone,role,is_active',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil supplier berhasil diambil.',
+            'data' => $vendor,
+        ]);
+    }
+
+    /**
+     * Perbarui profil supplier yang sedang login (role: vendor)
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user && $user->isVendor(),
+            403,
+            'Hanya supplier yang dapat memperbarui profil supplier.'
+        );
+
+        $vendor = Vendor::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'name' => $user->name,
+                'phone' => $user->phone,
+                'address' => null,
+            ]
+        );
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:150'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'email' => [
+                'required',
+                'email',
+                'max:150',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        DB::transaction(function () use ($user, $vendor, $data) {
+            $userUpdate = [
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'] ?? null,
+            ];
+
+            if (!empty($data['password'])) {
+                $userUpdate['password'] = $data['password'];
+            }
+
+            $user->update($userUpdate);
+
+            $vendor->update([
+                'name' => $data['name'],
+                'phone' => $data['phone'] ?? null,
+                'address' => $data['address'] ?? null,
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil supplier berhasil diperbarui.',
+            'data' => $vendor->fresh([
+                'categories',
+                'user:id,name,email,phone,role,is_active',
+            ]),
+        ]);
+    }
+
     private function ensureOwner(Request $request): void
     {
         abort_unless(

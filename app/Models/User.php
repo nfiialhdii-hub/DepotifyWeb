@@ -44,8 +44,18 @@ class User extends Authenticatable
         return $this->role === self::ROLE_VENDOR;
     }
 
+    public function isCustomer(): bool
+    {
+        return $this->role === self::ROLE_CUSTOMER;
+    }
+
     public function vendor()
     {
         return $this->hasOne(Vendor::class);
+    }
+
+    public function customer()
+    {
+        return $this->hasOne(Customer::class);
     }
 }

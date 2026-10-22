@@ -29,13 +29,21 @@ function statusLabel(status) {
         draft: 'Pending',
         ordered: 'Pending',
         confirmed: 'Diproses',
-        shipped: 'Diproses',
-        received: 'Diproses',
-        rejected: 'Batal',
+        shipped: 'Dikirim Supplier',
+        received: 'Selesai (Diterima)',
+        rejected: 'Ditolak Supplier',
         cancelled: 'Batal',
     };
 
     return labels[status] || status || '-';
+}
+
+function statusBadgeClass(status) {
+    if (['draft', 'ordered'].includes(status)) return 'status-ordered';
+    if (status === 'confirmed') return 'status-confirmed';
+    if (status === 'shipped') return 'status-shipped';
+    if (status === 'received') return 'status-received';
+    return 'status-cancelled';
 }
 
 function paymentMethodLabel(method) {
@@ -126,7 +134,7 @@ export default function Purchases() {
                 await Promise.all([
                     request('/purchase-orders'),
                     request('/vendors'),
-                    request('/products'),
+                    request('/products?scope=supplier'),
                 ]);
 
             setOrders(unwrapList(orderResult));
@@ -174,7 +182,11 @@ export default function Purchases() {
                 (statusFilter === 'pending' &&
                     ['draft', 'ordered'].includes(order.status)) ||
                 (statusFilter === 'diproses' &&
-                    ['confirmed', 'shipped', 'received'].includes(order.status)) ||
+                    order.status === 'confirmed') ||
+                (statusFilter === 'dikirim' &&
+                    order.status === 'shipped') ||
+                (statusFilter === 'selesai' &&
+                    order.status === 'received') ||
                 (statusFilter === 'dibatalkan' &&
                     ['cancelled', 'rejected'].includes(order.status));
 
@@ -200,11 +212,25 @@ export default function Purchases() {
     }), [orders]);
 
     const updateForm = (event) => {
+        const { name, value } = event.target;
         setForm((previous) => ({
             ...previous,
-            [event.target.name]: event.target.value,
+            [name]: value,
         }));
+
+        if (name === 'vendor_id') {
+            setItems([emptyItem()]);
+        }
     };
+
+    const vendorProducts = useMemo(() => {
+        if (!form.vendor_id) return [];
+        return products.filter(
+            (product) =>
+                Number(product.vendor_id) === Number(form.vendor_id) &&
+                product.is_active !== false
+        );
+    }, [products, form.vendor_id]);
 
     const updateItem = (index, key, value) => {
         setItems((previous) =>
@@ -220,11 +246,10 @@ export default function Purchases() {
         );
     };
 
-    // Harga satuan untuk sementara mengikuti harga beli pada data produk.
-    // Harga khusus per supplier akan disambungkan saat menu Supplier dikerjakan.
+    // Harga satuan mengikuti harga produk dari katalog Supplier yang dipilih.
     const subtotal = items.reduce((sum, item) => {
         const product = selectedProduct(item.product_id);
-        const price = Number(product?.purchase_price || 0);
+        const price = Number(product?.selling_price || product?.purchase_price || 0);
 
         return sum + Number(item.qty_ordered || 0) * price;
     }, 0);
@@ -309,9 +334,9 @@ export default function Purchases() {
             });
 
             setSuccess(
-                `Status ${order.po_number} diperbarui menjadi ${
-                    statusLabel(status)
-                }.`
+                status === 'received'
+                    ? `Barang untuk ${order.po_number} telah diterima! Stok produk di depot otomatis ditambahkan.`
+                    : `Status ${order.po_number} diperbarui menjadi ${statusLabel(status)}.`
             );
 
             await fetchData();
@@ -342,19 +367,19 @@ export default function Purchases() {
         }
     };
 
+    // Di sisi Owner:
+    // - Saat status masih Pending (draft/ordered), Owner hanya bisa membatalkan pesanan.
+    // - Konfirmasi, tolak, dan pengiriman dilakukan oleh Supplier di Dashboard Supplier.
+    // - Saat Supplier sudah mengirim barang (shipped), Owner dapat klik Terima Barang.
     const allowedNext = (status) => ({
         draft: [
-            { value: 'ordered', label: 'Tandai Dipesan' },
-            { value: 'cancelled', label: 'Batalkan' },
+            { value: 'cancelled', label: 'Batalkan Pesanan' },
         ],
         ordered: [
-            { value: 'confirmed', label: 'Konfirmasi Supplier' },
-            { value: 'rejected', label: 'Tolak Pesanan' },
-            { value: 'cancelled', label: 'Batalkan' },
+            { value: 'cancelled', label: 'Batalkan Pesanan' },
         ],
-        confirmed: [
-            { value: 'shipped', label: 'Tandai Dikirim' },
-            { value: 'cancelled', label: 'Batalkan' },
+        shipped: [
+            { value: 'received', label: 'Terima Barang (Tambah Stok)' },
         ],
     }[status] || []);
 
@@ -410,7 +435,6 @@ export default function Purchases() {
                     <div>
                         <p>Total Pesanan</p>
                         <strong>{summary.total}</strong>
-                        <small>Semua purchase order</small>
                     </div>
                 </article>
 
@@ -419,7 +443,6 @@ export default function Purchases() {
                     <div>
                         <p>Dalam Proses</p>
                         <strong>{summary.process}</strong>
-                        <small>Dipesan hingga dikirim</small>
                     </div>
                 </article>
 
@@ -428,7 +451,6 @@ export default function Purchases() {
                     <div>
                         <p>Nilai Pesanan</p>
                         <strong>{rupiah(summary.value)}</strong>
-                        <small>Total nilai seluruh PO</small>
                     </div>
                 </article>
             </div>
@@ -473,7 +495,9 @@ export default function Purchases() {
                         <option value="">Semua Status</option>
                         <option value="pending">Pending</option>
                         <option value="diproses">Diproses</option>
-                        <option value="dibatalkan">Dibatalkan</option>
+                        <option value="dikirim">Dikirim Supplier</option>
+                        <option value="selesai">Selesai (Diterima)</option>
+                        <option value="dibatalkan">Dibatalkan / Ditolak</option>
                     </select>
                 </div>
 
@@ -532,9 +556,6 @@ export default function Purchases() {
                                             <strong>
                                                 {order.vendor?.name || '-'}
                                             </strong>
-                                            <small>
-                                                {order.vendor?.phone || 'Supplier'}
-                                            </small>
                                         </td>
 
                                         <td>
@@ -549,7 +570,7 @@ export default function Purchases() {
 
                                         <td>
                                             <span
-                                                className={`purchase-status status-${['draft', 'ordered'].includes(order.status) ? 'pending' : ['confirmed', 'shipped', 'received'].includes(order.status) ? 'process' : 'cancelled'}`}
+                                                className={`purchase-status ${statusBadgeClass(order.status)}`}
                                             >
                                                 {statusLabel(order.status)}
                                             </span>
@@ -566,35 +587,44 @@ export default function Purchases() {
                                                     ⌕
                                                 </button>
 
-                                                {allowedNext(order.status).length > 0 && (
-                                                    <select
-                                                        className="purchase-action-select"
-                                                        value=""
-                                                        onChange={(event) => {
-                                                            if (event.target.value) {
-                                                                changeStatus(
-                                                                    order,
-                                                                    event.target.value
-                                                                );
-                                                            }
+                                                {order.status === 'shipped' && (
+                                                    <button
+                                                        type="button"
+                                                        className="purchase-primary-btn"
+                                                        style={{
+                                                            minHeight: '34px',
+                                                            padding: '0 14px',
+                                                            fontSize: '11.5px',
                                                         }}
-                                                        aria-label={`Ubah status ${order.po_number}`}
-                                                    >
-                                                        <option value="">
-                                                            Ubah status
-                                                        </option>
-
-                                                        {allowedNext(order.status).map(
-                                                            (next) => (
-                                                                <option
-                                                                    key={next.value}
-                                                                    value={next.value}
-                                                                >
-                                                                    {next.label}
-                                                                </option>
+                                                        onClick={() =>
+                                                            changeStatus(
+                                                                order,
+                                                                'received'
                                                             )
-                                                        )}
-                                                    </select>
+                                                        }
+                                                    >
+                                                        ✓ Terima Barang
+                                                    </button>
+                                                )}
+
+                                                {['draft', 'ordered'].includes(order.status) && (
+                                                    <button
+                                                        type="button"
+                                                        className="purchase-danger-btn"
+                                                        style={{
+                                                            minHeight: '34px',
+                                                            padding: '0 14px',
+                                                            fontSize: '11.5px',
+                                                        }}
+                                                        onClick={() =>
+                                                            changeStatus(
+                                                                order,
+                                                                'cancelled'
+                                                            )
+                                                        }
+                                                    >
+                                                        ✕ Batalkan
+                                                    </button>
                                                 )}
                                             </div>
                                         </td>
@@ -693,15 +723,20 @@ export default function Purchases() {
 
                         <div className="purchase-items-heading">
                             <div>
-                                <h3>Barang yang Dipesan</h3>
+                                <h3>Barang yang Dipesan dari Supplier</h3>
                                 <p>
-                                    Harga satuan mengikuti harga beli pada data produk.
+                                    {form.vendor_id
+                                        ? vendorProducts.length > 0
+                                            ? `Menampilkan ${vendorProducts.length} produk dari katalog supplier terpilih.`
+                                            : 'Supplier ini belum menambahkan produk ke katalognya. Minta supplier menambahkan produk di menu Produk.'
+                                        : 'Pilih supplier terlebih dahulu untuk menampilkan daftar produk yang dijual supplier tersebut.'}
                                 </p>
                             </div>
 
                             <button
                                 type="button"
                                 className="purchase-add-item"
+                                disabled={!form.vendor_id || vendorProducts.length === 0}
                                 onClick={() =>
                                     setItems((previous) => [
                                         ...previous,
@@ -717,7 +752,7 @@ export default function Purchases() {
                             {items.map((item, index) => {
                                 const product = selectedProduct(item.product_id);
 
-                                const price = Number(product?.purchase_price || 0);
+                                const price = Number(product?.selling_price || product?.purchase_price || 0);
 
                                 return (
                                     <div
@@ -725,9 +760,10 @@ export default function Purchases() {
                                         key={index}
                                     >
                                         <label className="purchase-item-product">
-                                            Produk
+                                            Produk Supplier
                                             <select
                                                 value={item.product_id}
+                                                disabled={!form.vendor_id}
                                                 onChange={(event) =>
                                                     updateItem(
                                                         index,
@@ -738,10 +774,14 @@ export default function Purchases() {
                                                 required
                                             >
                                                 <option value="">
-                                                    Pilih produk
+                                                    {!form.vendor_id
+                                                        ? 'Pilih supplier terlebih dahulu'
+                                                        : vendorProducts.length === 0
+                                                        ? 'Supplier belum memiliki produk'
+                                                        : 'Pilih produk supplier'}
                                                 </option>
 
-                                                {products.map((productOption) => (
+                                                {vendorProducts.map((productOption) => (
                                                     <option
                                                         key={productOption.id}
                                                         value={productOption.id}
@@ -750,16 +790,21 @@ export default function Purchases() {
                                                         {productOption.variant
                                                             ? ` · ${productOption.variant}`
                                                             : ''}
+                                                        {` (${rupiah(productOption.selling_price || productOption.purchase_price || 0)})`}
                                                     </option>
                                                 ))}
                                             </select>
 
                                             {product && (
                                                 <small>
+                                                    Kategori: {product.category?.name || '-'}
+                                                    {' · '}
                                                     SKU: {product.sku || '-'}
                                                     {' · '}
-                                                    Harga beli:{' '}
-                                                    {rupiah(product.purchase_price)}
+                                                    Stok supplier: {Number(product.stock_content ?? 0)}
+                                                    {' · '}
+                                                    Harga:{' '}
+                                                    {rupiah(price)}
                                                 </small>
                                             )}
                                         </label>

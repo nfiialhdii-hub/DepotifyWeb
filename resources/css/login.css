@@ -1,856 +1,425 @@
 /* =========================================================
-   DEPOTIFY - LOGIN PAGE
+   DEPOTIFY - NEUMORPHISM LOGIN & REGISTER PAGE
    ========================================================= */
 
 .login-page {
     position: relative;
     width: 100%;
-    height: 100dvh;
     min-height: 100dvh;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
-    overflow: hidden;
-    padding: 30px;
-
-    background: #eeeee7;
-
-    font-family: 'Instrument Sans', Arial, sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 32px 20px;
+    background: #ebeff5;
+    color: #242933;
+    font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     box-sizing: border-box;
 }
 
-
-/* =========================================================
-   BACKGROUND BUBBLES
-   HANYA 2 BUBBLE UTAMA
-   ========================================================= */
-
+/* Soft Neumorphic Sculpted Background Spheres */
 .login-page::before,
 .login-page::after {
     content: "";
-    position: absolute;
-
-    width: 220px;
-    height: 220px;
-
+    position: fixed;
+    width: 280px;
+    height: 280px;
     border-radius: 50%;
-
-    background: #a7b6d8;
-    opacity: 0.42;
-
+    background: #ebeff5;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 16px 16px 34px #c8d0dc, -16px -16px 34px #ffffff;
     pointer-events: none;
     z-index: 0;
-
-    animation: floatingBubble 9s ease-in-out infinite;
 }
 
-/* Bubble kiri atas */
 .login-page::before {
-    top: -95px;
-    left: 7%;
+    top: -90px;
+    left: 6%;
+    background: radial-gradient(circle, rgba(22, 163, 74, 0.16) 0%, #ebeff5 70%);
 }
 
-/* Bubble kanan bawah
-   dibuat sama seperti bubble kiri */
 .login-page::after {
-    right: 7%;
-    bottom: -100px;
-
-    animation-delay: -4s;
+    right: 6%;
+    bottom: -90px;
+    background: radial-gradient(circle, rgba(2, 132, 199, 0.16) 0%, #ebeff5 70%);
 }
-
-
-@keyframes floatingBubble {
-    0%,
-    100% {
-        transform: translate3d(0, 0, 0) scale(1);
-    }
-
-    50% {
-        transform: translate3d(20px, -18px, 0) scale(1.06);
-    }
-}
-
 
 /* =========================================================
-   LOGIN CONTAINER
+   MAIN EXTRUDED NEUMORPHIC CONTAINER
    ========================================================= */
 
 .login-container {
     position: relative;
     z-index: 5;
-
-    width: min(900px, 90%);
-
+    width: min(940px, 100%);
     display: grid;
-    grid-template-columns: 1fr 1fr;
-
-    overflow: hidden;
-
-    border-radius: 14px;
-
-    background: #ffffff;
-
+    grid-template-columns: 0.92fr 1.08fr;
+    gap: 24px;
+    padding: 24px;
+    border-radius: 28px;
+    background: #ebeff5;
+    border: 1px solid rgba(255, 255, 255, 0.78);
     box-shadow:
-        0 25px 60px rgba(30, 50, 80, 0.16),
-        0 8px 20px rgba(30, 50, 80, 0.08);
-
-    animation: loginCardEnter 0.8s ease-out;
+        14px 14px 30px #c6cedb,
+        -14px -14px 30px #ffffff;
 }
-
-
-@keyframes loginCardEnter {
-    from {
-        opacity: 0;
-        transform: translateY(25px) scale(0.97);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
 
 /* =========================================================
-   LEFT BRAND
+   LEFT BRAND SLAB (MATCHING REFERENCE SIDEBAR CARD)
    ========================================================= */
 
 .login-brand {
     position: relative;
-
-    min-height: 420px;
-
+    min-height: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-
-    padding: 40px;
-
-    overflow: hidden;
-
+    padding: 40px 32px;
+    border-radius: 22px;
     text-align: center;
-
-    color: #ffffff;
-
-    background: #203554;
+    color: #1e293b;
+    background: linear-gradient(155deg, rgba(22, 163, 74, 0.06) 0%, #ebeff5 50%, rgba(2, 132, 199, 0.07) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow:
+        inset 5px 5px 11px #ccd4e0,
+        inset -5px -5px 11px #ffffff;
 }
 
-
-/* Bubble dekorasi kiri */
-.login-brand::before {
-    content: "";
-
-    position: absolute;
-
-    width: 270px;
-    height: 270px;
-
-    top: -125px;
-    right: -105px;
-
-    border-radius: 50%;
-
-    background: rgba(255, 255, 255, 0.07);
-
-    animation: brandBubble 8s ease-in-out infinite;
-}
-
-
-.login-brand::after {
-    content: "";
-
-    position: absolute;
-
-    width: 190px;
-    height: 190px;
-
-    bottom: -100px;
-    left: -70px;
-
-    border-radius: 50%;
-
-    background: rgba(255, 255, 255, 0.05);
-
-    animation: brandBubble 10s ease-in-out infinite reverse;
-}
-
-
-@keyframes brandBubble {
-    0%,
-    100% {
-        transform: translate(0, 0);
-    }
-
-    50% {
-        transform: translate(18px, -18px);
-    }
-}
-
-
-/* =========================================================
-   BRAND MARK
-   ========================================================= */
-
+/* Double-Ring Neumorphic Brand Mark (Gas & Galon Gradient Core) */
 .login-brand .brand-mark {
     position: relative;
-    z-index: 3;
-
-    width: 70px;
-    height: 70px;
-
+    width: 88px;
+    height: 88px;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    margin-bottom: 18px;
-
-    border-radius: 18px;
-
-    background: #59cc8c;
+    margin-bottom: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #16a34a 0%, #0284c7 100%);
     color: #ffffff;
-
-    font-size: 30px;
+    font-size: 34px;
     font-weight: 800;
-
+    border: 6px solid #ebeff5;
     box-shadow:
-        0 12px 30px rgba(0, 0, 0, 0.18);
-
-    animation: markFloat 3s ease-in-out infinite;
+        8px 8px 16px #c6cedb,
+        -8px -8px 16px #ffffff,
+        inset 2px 2px 5px rgba(0, 0, 0, 0.25);
 }
-
-
-@keyframes markFloat {
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg);
-    }
-
-    50% {
-        transform: translateY(-8px) rotate(-3deg);
-    }
-}
-
-
-/* Tetesan air */
-.login-brand .brand-mark::before {
-    content: "";
-
-    position: absolute;
-
-    width: 12px;
-    height: 17px;
-
-    top: -9px;
-    right: 2px;
-
-    border-radius: 60% 60% 60% 0;
-
-    background: #6ebbe7;
-
-    transform: rotate(-45deg);
-
-    animation: dropletOne 2.5s ease-in-out infinite;
-}
-
-
-.login-brand .brand-mark::after {
-    content: "";
-
-    position: absolute;
-
-    width: 9px;
-    height: 13px;
-
-    bottom: 0;
-    left: -8px;
-
-    border-radius: 60% 60% 60% 0;
-
-    background: #75c5ed;
-
-    transform: rotate(-45deg);
-
-    animation: dropletTwo 3s ease-in-out infinite;
-}
-
-
-@keyframes dropletOne {
-    0%,
-    100% {
-        opacity: 0.7;
-        transform: translateY(0) rotate(-45deg);
-    }
-
-    50% {
-        opacity: 1;
-        transform: translateY(-7px) rotate(-45deg);
-    }
-}
-
-
-@keyframes dropletTwo {
-    0%,
-    100% {
-        opacity: 0.7;
-        transform: translateY(0) rotate(-45deg);
-    }
-
-    50% {
-        opacity: 1;
-        transform: translateY(6px) rotate(-45deg);
-    }
-}
-
-
-/* =========================================================
-   BRAND TEXT
-   ========================================================= */
 
 .login-brand h1 {
-    position: relative;
-    z-index: 3;
-
     margin: 0;
-
-    color: #ffffff;
-
-    font-size: 42px;
-    line-height: 1;
+    background: linear-gradient(135deg, #15803d 0%, #0369a1 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-size: 34px;
+    line-height: 1.1;
     font-weight: 800;
-
-    letter-spacing: -1.5px;
+    letter-spacing: -1px;
 }
 
-
 .login-brand p {
-    position: relative;
-    z-index: 3;
-
-    max-width: 290px;
-
-    margin: 18px 0 0;
-
-    color: rgba(255, 255, 255, 0.78);
-
-    font-size: 14px;
+    max-width: 280px;
+    margin: 14px 0 0;
+    color: #7d8797;
+    font-size: 13.5px;
     line-height: 1.7;
 }
 
-
 /* =========================================================
-   RIGHT LOGIN CARD
+   RIGHT AUTH FORM PANEL
    ========================================================= */
 
 .login-card {
     position: relative;
-    z-index: 2;
-
     min-width: 0;
-
     display: flex;
     flex-direction: column;
     justify-content: center;
-
-    padding: 42px;
-
-    background: #ffffff;
-
-    overflow: hidden;
+    padding: 28px 26px;
+    border-radius: 22px;
+    background: #ebeff5;
 }
-
-
-/*
-   PENTING:
-   Tidak ada bubble besar di login-card.
-
-   Bubble kanan sekarang berasal dari .login-page::after
-   supaya tidak membuat efek seperti halaman terbagi dua.
-*/
-
-
-/* =========================================================
-   BACK BUTTON
-   ========================================================= */
 
 .back-button {
-    position: relative;
-    z-index: 5;
-
     align-self: flex-start;
-
-    margin: 0 0 25px;
-
-    padding: 0;
-
-    border: none;
-
-    background: transparent;
-
-    color: #65716c;
-
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-
+    margin: 0 0 22px;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 999px;
+    background: #ebeff5;
+    color: #485262;
+    font-size: 12px;
+    font-weight: 700;
     cursor: pointer;
-
-    transition:
-        color 0.2s ease,
-        transform 0.2s ease;
+    box-shadow:
+        4px 4px 9px #c8d0dc,
+        -4px -4px 9px #ffffff;
+    transition: all 0.18s ease;
 }
 
-
-.back-button:hover {
-    color: #203554;
-    transform: translateX(-4px);
+.back-button:hover:not(:disabled) {
+    color: #242933;
+    transform: translateY(-1px);
 }
 
-
-/* =========================================================
-   HEADING
-   ========================================================= */
-
-.login-heading {
-    position: relative;
-    z-index: 5;
+.back-button:active:not(:disabled) {
+    box-shadow:
+        inset 3px 3px 6px #c8d0dc,
+        inset -3px -3px 6px #ffffff;
 }
-
 
 .login-heading .section-label {
-    margin: 0 0 9px;
-
-    color: #52785d;
-
-    font-size: 11px;
+    display: inline-block;
+    margin: 0 0 10px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #e2e7f0;
+    box-shadow:
+        inset 2px 2px 5px #c8d0dc,
+        inset -2px -2px 5px #ffffff;
+    color: #16a34a;
+    font-size: 10px;
     font-weight: 800;
-
-    letter-spacing: 2px;
+    letter-spacing: 1.6px;
 }
-
 
 .login-heading h2 {
     margin: 0;
-
-    color: #111827;
-
-    font-size: 28px;
+    color: #242933;
+    font-size: 27px;
     line-height: 1.2;
     font-weight: 800;
+    letter-spacing: -0.5px;
 }
 
-
 .login-heading > p:last-child {
-    margin: 9px 0 28px;
-
-    color: #68736c;
-
-    font-size: 14px;
+    margin: 8px 0 24px;
+    color: #7d8797;
+    font-size: 13.5px;
     line-height: 1.6;
 }
 
-
 /* =========================================================
-   FORM
+   RECESSED NEUMORPHIC FORM INPUTS
    ========================================================= */
 
 .form-group {
-    position: relative;
-    z-index: 5;
-
-    margin-bottom: 18px;
-
-    animation: formAppear 0.5s ease-out both;
+    margin-bottom: 16px;
 }
 
-
-.form-group:nth-child(1) {
-    animation-delay: 0.15s;
+.register-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
 }
-
-
-.form-group:nth-child(2) {
-    animation-delay: 0.25s;
-}
-
-
-@keyframes formAppear {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 
 .form-group label {
     display: block;
-
     margin-bottom: 7px;
-
-    color: #27342d;
-
-    font-size: 12px;
+    color: #394150;
+    font-size: 11.5px;
     font-weight: 700;
+    letter-spacing: 0.2px;
 }
-
 
 .form-group input {
     width: 100%;
     height: 46px;
-
-    padding: 0 14px;
-
-    border: 1px solid #dfe4df;
-    border-radius: 7px;
-
+    padding: 0 16px;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 13px;
     outline: none;
-
-    background: #ffffff;
-    color: #17251d;
-
-    font-family: inherit;
+    background: #e6ebf3;
+    color: #242933;
     font-size: 13px;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        background 0.2s ease;
-
+    font-weight: 600;
+    box-shadow:
+        inset 4px 4px 8px #c6cedb,
+        inset -4px -4px 8px #ffffff;
+    transition: box-shadow 0.2s ease, background 0.2s ease;
     box-sizing: border-box;
 }
 
-
 .form-group input::placeholder {
-    color: #a0a9a4;
+    color: #96a0b0;
+    font-weight: 500;
 }
-
 
 .form-group input:focus {
-    border-color: #59cc8c;
-
-    background: #fbfffc;
-
+    background: #eaf0f7;
     box-shadow:
-        0 0 0 3px rgba(89, 204, 140, 0.12);
+        inset 5px 5px 10px #bcc5d4,
+        inset -5px -5px 10px #ffffff,
+        0 0 0 2px rgba(2, 132, 199, 0.22);
 }
-
-
-/* =========================================================
-   PASSWORD
-   ========================================================= */
 
 .password-wrapper {
     position: relative;
 }
 
-
 .password-wrapper input {
-    padding-right: 90px;
+    padding-right: 96px;
 }
-
 
 .password-toggle {
     position: absolute;
-
     top: 50%;
-    right: 10px;
-
+    right: 8px;
     transform: translateY(-50%);
-
-    padding: 5px 7px;
-
-    border: none;
-
-    background: transparent;
-
-    color: #52785d;
-
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 700;
-
+    padding: 6px 11px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    border-radius: 9px;
+    background: #ebeff5;
+    color: #0284c7;
+    font-size: 10.5px;
+    font-weight: 800;
     cursor: pointer;
+    box-shadow:
+        3px 3px 6px #c8d0dc,
+        -3px -3px 6px #ffffff;
+    transition: all 0.15s ease;
 }
-
 
 .password-toggle:hover {
-    color: #203554;
+    color: #16a34a;
 }
 
+.password-toggle:active {
+    box-shadow:
+        inset 2px 2px 4px #c8d0dc,
+        inset -2px -2px 4px #ffffff;
+}
 
 /* =========================================================
-   ERROR
+   ALERTS & SUBMIT BUTTON
    ========================================================= */
 
 .login-error {
-    position: relative;
-    z-index: 5;
-
     margin: 0 0 16px;
-
-    padding: 10px 12px;
-
-    border: 1px solid #efc7c7;
-    border-radius: 7px;
-
-    background: #fff3f3;
-    color: #b33a3a;
-
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #ebeff5;
+    border: 1px solid rgba(201, 74, 74, 0.25);
+    box-shadow:
+        inset 3px 3px 7px #cfd6e2,
+        inset -3px -3px 7px #ffffff;
+    color: #b43636;
     font-size: 12px;
+    font-weight: 700;
     line-height: 1.5;
-
-    animation: errorShake 0.35s ease;
 }
 
-
-@keyframes errorShake {
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    25% {
-        transform: translateX(-4px);
-    }
-
-    75% {
-        transform: translateX(4px);
-    }
+.login-success {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #ebeff5;
+    border: 1px solid rgba(46, 158, 107, 0.28);
+    box-shadow:
+        inset 3px 3px 7px #cfd6e2,
+        inset -3px -3px 7px #ffffff;
+    color: #16a34a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
 }
-
-
-/* =========================================================
-   SUBMIT BUTTON
-   ========================================================= */
 
 .login-submit {
-    position: relative;
-    z-index: 5;
-
     width: 100%;
-
-    margin-top: 4px;
-
-    padding: 13px 16px;
-
-    border: none;
-    border-radius: 7px;
-
-    background: #59cc8c;
+    height: 48px;
+    margin-top: 6px;
+    padding: 0 20px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    background: linear-gradient(135deg, #16a34a 0%, #0284c7 100%);
     color: #ffffff;
-
-    font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 800;
-
+    letter-spacing: 0.3px;
     cursor: pointer;
-
-    overflow: hidden;
-
-    transition:
-        background 0.2s ease,
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
-
-    animation: formAppear 0.5s 0.3s ease-out both;
-}
-
-
-.login-submit::before {
-    content: "";
-
-    position: absolute;
-
-    top: 0;
-    left: -120%;
-
-    width: 70%;
-    height: 100%;
-
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.25),
-        transparent
-    );
-
-    transform: skewX(-20deg);
-
-    transition: left 0.6s ease;
-}
-
-
-.login-submit:hover::before {
-    left: 150%;
-}
-
-
-.login-submit:hover {
-    background: #49bd7e;
-
-    transform: translateY(-2px);
-
     box-shadow:
-        0 9px 22px rgba(67, 185, 119, 0.25);
+        6px 6px 14px rgba(2, 132, 199, 0.26),
+        -6px -6px 14px #ffffff;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
 }
 
+.login-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow:
+        8px 8px 18px rgba(22, 163, 74, 0.3),
+        -8px -8px 18px #ffffff;
+}
 
-.login-submit:active {
+.login-submit:active:not(:disabled) {
     transform: translateY(0);
+    box-shadow:
+        inset 3px 3px 7px rgba(0, 0, 0, 0.35);
 }
-
 
 .login-submit:disabled {
-    opacity: 0.7;
+    opacity: 0.65;
     cursor: wait;
 }
 
-
 /* =========================================================
-   RESPONSIVE
+   MODE SWITCH (LOGIN <-> REGISTER)
    ========================================================= */
 
-@media (max-width: 760px) {
-
-    .login-page {
-        height: 100dvh;
-        min-height: 100dvh;
-
-        padding: 20px;
-    }
-
-    .login-container {
-        width: min(520px, 100%);
-
-        grid-template-columns: 1fr;
-    }
-
-    .login-brand {
-        min-height: 250px;
-
-        padding: 30px;
-    }
-
-    .login-brand .brand-mark {
-        width: 55px;
-        height: 55px;
-
-        border-radius: 15px;
-
-        font-size: 24px;
-    }
-
-    .login-brand h1 {
-        font-size: 34px;
-    }
-
-    .login-brand p {
-        margin-top: 12px;
-
-        font-size: 13px;
-    }
-
-    .login-card {
-        padding: 32px;
-    }
-
-    .login-page::before {
-        width: 170px;
-        height: 170px;
-    }
-
-    .login-page::after {
-        width: 170px;
-        height: 170px;
-    }
+.auth-switch {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(196, 205, 218, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: #7d8797;
+    font-size: 12.5px;
+    font-weight: 600;
 }
 
+.auth-switch-btn {
+    padding: 7px 15px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    background: #ebeff5;
+    color: #0284c7;
+    font-weight: 800;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow:
+        4px 4px 9px #c8d0dc,
+        -4px -4px 9px #ffffff;
+    transition: all 0.18s ease;
+}
 
-@media (max-width: 480px) {
+.auth-switch-btn:hover:not(:disabled) {
+    color: #16a34a;
+    transform: translateY(-1px);
+}
 
-    .login-page {
-        padding: 14px;
-    }
+.auth-switch-btn:active:not(:disabled) {
+    box-shadow:
+        inset 3px 3px 6px #c8d0dc,
+        inset -3px -3px 6px #ffffff;
+}
 
+@media (max-width: 780px) {
     .login-container {
-        width: 100%;
-
-        border-radius: 9px;
+        grid-template-columns: 1fr;
+        padding: 18px;
     }
 
     .login-brand {
         min-height: 220px;
-
-        padding: 25px;
+        padding: 28px 20px;
     }
 
-    .login-brand h1 {
-        font-size: 30px;
-    }
-
-    .login-brand p {
-        max-width: 240px;
-
-        font-size: 12px;
-    }
-
-    .login-card {
-        padding: 26px 22px;
-    }
-
-    .login-heading h2 {
-        font-size: 24px;
-    }
-
-    .login-heading > p:last-child {
-        margin-bottom: 22px;
-    }
-
-    .form-group input {
-        height: 44px;
-    }
-
-    .login-page::before {
-        width: 130px;
-        height: 130px;
-
-        top: -55px;
-        left: -35px;
-    }
-
-    .login-page::after {
-        width: 130px;
-        height: 130px;
-
-        right: -35px;
-        bottom: -55px;
-    }
-}
-
-
-/* =========================================================
-   REDUCE MOTION
-   ========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-
-    .login-page::before,
-    .login-page::after,
-    .login-brand::before,
-    .login-brand::after,
-    .login-brand .brand-mark,
-    .login-brand .brand-mark::before,
-    .login-brand .brand-mark::after,
-    .form-group,
-    .login-submit {
-        animation: none !important;
+    .register-form-row {
+        grid-template-columns: 1fr;
     }
 }

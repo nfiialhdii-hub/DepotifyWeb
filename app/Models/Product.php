@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
+        'vendor_id',
+        'source_product_id',
         'category_id',
         'sku',
         'name',
@@ -15,6 +17,8 @@ class Product extends Model
         'selling_price',
         'deposit_price',
         'purchase_price',
+        'stock_content',
+        'empty_stock',
         'minimum_stock',
         'is_active',
     ];
@@ -25,6 +29,16 @@ class Product extends Model
         'purchase_price' => 'decimal:2',
         'is_active' => 'boolean',
     ];
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class);
+    }
+
+    public function sourceProduct()
+    {
+        return $this->belongsTo(self::class, 'source_product_id');
+    }
 
     public function category()
     {

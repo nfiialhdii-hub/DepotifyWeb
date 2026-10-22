@@ -1,61 +1,65 @@
-function Sidebar({ activePage, onNavigate, onLogout }) {
-
+function Sidebar({ activePage, onNavigate, onLogout, user }) {
     const menus = [
         {
             id: 'dashboard',
-            label: 'Dashboard',
+            label: 'OVERVIEW',
+            icon: '◐',
         },
         {
             id: 'products',
-            label: 'Produk',
+            label: 'PRODUK',
+            icon: '◫',
         },
         {
             id: 'category',
-            label: 'Kategori',
+            label: 'KATEGORI',
+            icon: '❖',
         },
         {
             id: 'stock',
-            label: 'Stok',
+            label: 'STOK DEPOT',
+            icon: '◰',
         },
         {
             id: 'purchases',
-            label: 'Pembelian',
+            label: 'PEMBELIAN',
+            icon: '▤',
         },
         {
             id: 'vendors',
-            label: 'Supplier',
+            label: 'SUPPLIER',
+            icon: '◈',
         },
         {
             id: 'reports',
-            label: 'Laporan',
+            label: 'LAPORAN',
+            icon: '◧',
         },
     ];
 
+    const displayName = user?.name || 'Owner Depotify';
+    const displaySub = user?.email || 'ID: OWNER-01';
+    const initial = displayName.charAt(0).toUpperCase();
+
     return (
         <aside className="dashboard-sidebar">
-
-            {/* BRAND */}
+            {/* BRAND & PROFILE HEADER (Neumorphic Reference Style) */}
             <div className="sidebar-brand">
-                <span className="sidebar-brand-mark">
-                    ⌁
-                </span>
+                <span className="sidebar-brand-title">Depotify</span>
+            </div>
 
-                <span>
-                    Depotify
-                </span>
+            <div className="sidebar-profile-card">
+                <div className="sidebar-avatar-ring">
+                    <div className="sidebar-avatar-inner">{initial}</div>
+                </div>
+                <strong className="sidebar-profile-name">{displayName}</strong>
+                <span className="sidebar-profile-id">{displaySub}</span>
             </div>
 
             {/* MENU */}
             <div className="sidebar-section">
-
-                <p>
-                    MENU UTAMA
-                </p>
-
                 <nav className="sidebar-menu">
-
                     {menus.map((menu) => (
-
                         <button
                             key={menu.id}
                             type="button"
@@ -66,46 +70,25 @@ function Sidebar({ activePage, onNavigate, onLogout }) {
                             }
                             onClick={() => onNavigate(menu.id)}
                         >
-
-                            <span className="menu-indicator">
-                                {activePage === menu.id
-                                    ? '●'
-                                    : '○'}
-                            </span>
-
-                            <span>
-                                {menu.label}
-                            </span>
-
+                            <span className="menu-indicator">{menu.icon}</span>
+                            <span>{menu.label}</span>
                         </button>
-
                     ))}
-
                 </nav>
-
             </div>
 
             {/* LOGOUT */}
             <div className="sidebar-bottom">
-
                 <button
                     type="button"
                     className="sidebar-logout"
                     onClick={onLogout}
+                    title="Keluar dari Sesi"
                 >
-
-                    <span>
-
-                    </span>
-
-                    <span>
-                        Keluar
-                    </span>
-
+                    <span className="logout-power-icon">⏻</span>
+                    <span>Keluar</span>
                 </button>
-
             </div>
-
         </aside>
     );
 }
