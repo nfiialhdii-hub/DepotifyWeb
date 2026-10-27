@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -44,7 +45,26 @@ class AuthController extends Controller
         }
 
         $user = $this->hydrateUserRelations($user);
-        $token = $user->createToken('depotify-api')->plainTextToken;
+        $expiresAt = now()->addHours(24);
+        $token = $user->createToken('depotify-api', ['*'], $expiresAt)->plainTextToken;
+
+        $roleLabel = match ($user->role) {
+            'owner' => 'Owner / Admin',
+            'vendor' => 'Supplier',
+            'customer' => 'Customer / User',
+            default => $user->role,
+        };
+
+        ActivityLogger::log(
+            $user,
+            'login',
+            'auth',
+            "Login berhasil ke sistem sebagai {$roleLabel} ({$user->email})",
+            [
+                'expires_at' => $expiresAt->toIso8601String(),
+            ],
+            $request
+        );
 
         return response()->json([
             'success' => true,
@@ -53,6 +73,8 @@ class AuthController extends Controller
                 'user' => $user,
                 'token' => $token,
                 'token_type' => 'Bearer',
+                'expires_at' => $expiresAt->toIso8601String(),
+                'expires_in_seconds' => 24 * 60 * 60,
             ],
         ], 200);
     }
@@ -104,6 +126,15 @@ class AuthController extends Controller
 
         $user = $this->hydrateUserRelations($user);
 
+        ActivityLogger::log(
+            $user,
+            'register',
+            'auth',
+            "Registrasi akun Customer baru: {$user->name} ({$user->email})",
+            [],
+            $request
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Registrasi akun berhasil! Silakan masuk menggunakan email dan kata sandi Anda.',
@@ -118,10 +149,22 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $accessToken = $request->user()?->currentAccessToken();
+        $user = $request->user();
+        $accessToken = $user?->currentAccessToken();
 
         if ($accessToken) {
             $accessToken->delete();
+        }
+
+        if ($user) {
+            ActivityLogger::log(
+                $user,
+                'logout',
+                'auth',
+                "Logout dari sistem ({$user->email})",
+                [],
+                $request
+            );
         }
 
         return response()->json([

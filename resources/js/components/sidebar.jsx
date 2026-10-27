@@ -26,6 +26,11 @@ function Sidebar({ activePage, onNavigate, onLogout, user }) {
             icon: '▤',
         },
         {
+            id: 'transactions',
+            label: 'RIWAYAT TRANSAKSI',
+            icon: '⇄',
+        },
+        {
             id: 'vendors',
             label: 'SUPPLIER',
             icon: '◈',
@@ -34,6 +39,11 @@ function Sidebar({ activePage, onNavigate, onLogout, user }) {
             id: 'reports',
             label: 'LAPORAN',
             icon: '◧',
+        },
+        {
+            id: 'history',
+            label: 'RIWAYAT AKUN',
+            icon: '◷',
         },
     ];
 

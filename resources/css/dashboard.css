@@ -40,14 +40,14 @@ textarea {
 
 .dashboard-sidebar {
     position: fixed;
-    top: 20px;
+    top: 18px;
     left: 20px;
     width: 242px;
-    height: calc(100vh - 40px);
+    height: calc(100vh - 36px);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 28px 20px 24px;
+    padding: 20px 18px 18px;
     border-radius: 26px;
     background: #ebeff5;
     border: 1px solid rgba(255, 255, 255, 0.78);
@@ -61,7 +61,7 @@ textarea {
 .sidebar-brand {
     width: 100%;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
 .sidebar-brand-title {
@@ -81,14 +81,14 @@ textarea {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    margin-bottom: 28px;
+    margin-bottom: 16px;
 }
 
 .sidebar-avatar-ring {
-    width: 78px;
-    height: 78px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
-    padding: 6px;
+    padding: 5px;
     background: #ebeff5;
     border: 1px solid rgba(255, 255, 255, 0.85);
     box-shadow:
@@ -97,7 +97,7 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
 }
 
 .sidebar-avatar-inner {
@@ -109,16 +109,16 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 21px;
     font-weight: 800;
     box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.25);
 }
 
 .sidebar-profile-name {
     color: #242933;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 800;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 
 .sidebar-profile-id {
@@ -132,28 +132,34 @@ textarea {
     width: 100%;
     flex: 1;
     overflow-y: auto;
-    padding: 4px 2px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 2px;
+}
+
+.sidebar-section::-webkit-scrollbar {
+    display: none;
 }
 
 .sidebar-menu {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 5px;
 }
 
 .sidebar-menu-item {
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 11px 18px;
+    gap: 11px;
+    padding: 9px 16px;
     border: 1px solid transparent;
     border-radius: 999px;
     background: transparent;
     color: #677284;
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     text-align: left;
     cursor: pointer;
     transition: all 0.2s ease;

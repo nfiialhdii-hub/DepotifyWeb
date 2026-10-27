@@ -137,7 +137,7 @@ export async function supplierApiRequest(endpoint, options = {}) {
                 ...(options.headers || {}),
             },
         },
-        8000
+        20000
     );
 
     const result = await response.json().catch(() => ({}));

@@ -57,7 +57,7 @@ function Login({ onBack, onLoginSuccess, sessionNotice = '' }) {
                         password,
                     }),
                 },
-                8000
+                30000
             );
 
             const result = await response.json().catch(() => ({}));
@@ -78,25 +78,28 @@ function Login({ onBack, onLoginSuccess, sessionNotice = '' }) {
             const authData = result?.data || result;
             const user = authData?.user;
             const token = authData?.token;
+            const expiresAt =
+                authData?.expires_at || Date.now() + 24 * 60 * 60 * 1000;
 
             if (!user || !user.role || !token) {
                 setError('Respons autentikasi dari server tidak lengkap.');
                 return;
             }
 
-            saveAuthSession(token, user);
+            saveAuthSession(token, user, expiresAt);
 
             if (typeof onLoginSuccess === 'function') {
                 onLoginSuccess({
                     user,
                     token,
+                    expiresAt,
                 });
             }
         } catch (err) {
             const isTimeout = err?.name === 'AbortError';
             setError(
                 isTimeout
-                    ? 'Permintaan login melebihi batas waktu. Pastikan server Laravel aktif.'
+                    ? 'Server membutuhkan waktu terlalu lama untuk merespons. Pastikan server Laravel & MySQL aktif.'
                     : 'Tidak dapat terhubung ke server Laravel. Periksa koneksi dan backend.'
             );
         } finally {
@@ -144,7 +147,7 @@ function Login({ onBack, onLoginSuccess, sessionNotice = '' }) {
                         password_confirmation: regForm.password_confirmation,
                     }),
                 },
-                8000
+                30000
             );
 
             const result = await response.json().catch(() => ({}));

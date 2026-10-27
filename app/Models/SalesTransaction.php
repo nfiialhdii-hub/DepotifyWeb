@@ -25,6 +25,11 @@ class SalesTransaction extends Model
         'total_amount' => 'decimal:2',
     ];
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

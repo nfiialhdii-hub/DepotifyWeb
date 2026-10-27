@@ -30,6 +30,16 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $appends = [
+        'uses_container',
+    ];
+
+    public function getUsesContainerAttribute(): bool
+    {
+        return in_array($this->unit, ['canister', 'gallon'], true)
+            || (float) ($this->deposit_price ?? 0) > 0;
+    }
+
     public function vendor()
     {
         return $this->belongsTo(Vendor::class);

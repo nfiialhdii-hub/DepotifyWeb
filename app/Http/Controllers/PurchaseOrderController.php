@@ -10,6 +10,7 @@ use App\Models\PurchaseOrder;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -140,7 +141,7 @@ class PurchaseOrderController extends Controller
 
         $data = $request->validate($this->rules());
 
-        $po = DB::transaction(function () use ($data, $user) {
+        $po = DB::transaction(function () use ($data, $user, $request) {
             $po = PurchaseOrder::create([
                 ...Arr::except($data, ['items']),
                 'po_date' => now()->toDateString(),
@@ -150,6 +151,15 @@ class PurchaseOrderController extends Controller
             ]);
 
             $this->saveItems($po, $data['items']);
+
+            ActivityLogger::log(
+                $user,
+                'create',
+                'purchase_order',
+                "Membuat Purchase Order {$po->po_number} senilai Rp " . number_format((float) $po->total_price, 0, ',', '.'),
+                ['po_id' => $po->id, 'po_number' => $po->po_number],
+                $request
+            );
 
             return $po;
         });
@@ -195,7 +205,7 @@ class PurchaseOrderController extends Controller
                 $updatePayload['notes'] = $data['notes'];
             }
 
-            DB::transaction(function () use ($po, $updatePayload, $data, $user) {
+            DB::transaction(function () use ($po, $updatePayload, $data, $user, $request) {
                 $po->update($updatePayload);
 
                 // Jika Supplier menandai pesanan sebagai 'shipped' (Dikirim),
@@ -203,6 +213,22 @@ class PurchaseOrderController extends Controller
                 if ($data['status'] === 'shipped') {
                     $this->deductSupplierStockOnShip($po, $user);
                 }
+
+                $statusText = match ($data['status']) {
+                    'confirmed' => 'Dikonfirmasi (Diproses)',
+                    'shipped' => 'Dikirim ke Depot',
+                    'rejected' => 'Ditolak',
+                    default => $data['status'],
+                };
+
+                ActivityLogger::log(
+                    $user,
+                    'status_change',
+                    'purchase_order',
+                    "Supplier mengubah status {$po->po_number} menjadi {$statusText}",
+                    ['po_id' => $po->id, 'po_number' => $po->po_number, 'status' => $data['status']],
+                    $request
+                );
             });
 
             return $po->load([
@@ -235,7 +261,7 @@ class PurchaseOrderController extends Controller
 
         $previousStatus = $po->status;
 
-        DB::transaction(function () use ($po, $data, $previousStatus, $user) {
+        DB::transaction(function () use ($po, $data, $previousStatus, $user, $request) {
             $po->update(Arr::except($data, ['items']));
 
             if (isset($data['items'])) {
@@ -261,6 +287,23 @@ class PurchaseOrderController extends Controller
                 && $previousStatus !== 'received'
             ) {
                 $this->receiveOrderItemsIntoStock($po, $user);
+            }
+
+            if (isset($data['status']) && $data['status'] !== $previousStatus) {
+                $statusText = match ($data['status']) {
+                    'received' => 'Selesai (Barang Diterima & Stok Bertambah)',
+                    'cancelled' => 'Dibatalkan',
+                    default => $data['status'],
+                };
+
+                ActivityLogger::log(
+                    $user,
+                    'status_change',
+                    'purchase_order',
+                    "Mengubah status {$po->po_number} menjadi {$statusText}",
+                    ['po_id' => $po->id, 'po_number' => $po->po_number, 'status' => $data['status']],
+                    $request
+                );
             }
         });
 

@@ -9,7 +9,10 @@ import Products from './product';
 import Category from './category';
 import Stock from './stock';
 import Purchases from './purchase';
+import Transactions from './transactions';
 import Vendors from './vendor';
+import Reports from './reports';
+import ActivityHistory from './activity-history';
 
 function Dashboard({ user, onLogout }) {
 
@@ -719,6 +722,13 @@ function Dashboard({ user, onLogout }) {
                 );
 
 
+            case 'transactions':
+
+                return (
+                    <Transactions />
+                );
+
+
             case 'vendors':
 
                 return (
@@ -729,21 +739,14 @@ function Dashboard({ user, onLogout }) {
             case 'reports':
 
                 return (
-                    <div className="dashboard-placeholder">
+                    <Reports user={user} />
+                );
 
-                        <p className="dashboard-label">
-                            LAPORAN
-                        </p>
 
-                        <h1>
-                            Laporan
-                        </h1>
+            case 'history':
 
-                        <p>
-                            Halaman laporan sedang dalam pengembangan.
-                        </p>
-
-                    </div>
+                return (
+                    <ActivityHistory />
                 );
 
 

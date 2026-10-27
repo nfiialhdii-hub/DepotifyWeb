@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesTransactionController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\VendorController;
@@ -41,6 +43,10 @@ Route::prefix('v1')->group(function () use ($healthHandler) {
         Route::middleware('role:customer')->group(function () {
             Route::get('/customer/dashboard', [DashboardController::class, 'customerDashboard']);
             Route::put('/customer/profile', [AuthController::class, 'updateCustomerProfile']);
+            Route::get('/customer/orders', [SalesTransactionController::class, 'index']);
+            Route::get('/customer/orders/{id}', [SalesTransactionController::class, 'show']);
+            Route::post('/customer/orders', [SalesTransactionController::class, 'store']);
+            Route::put('/customer/orders/{id}', [SalesTransactionController::class, 'update']);
         });
 
         // Endpoint khusus Supplier (role: vendor)
@@ -85,11 +91,16 @@ Route::prefix('v1')->group(function () use ($healthHandler) {
             Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
             Route::delete('/purchase-orders/{id}', [PurchaseOrderController::class, 'destroy']);
 
-            // Sales
+            // Sales / Riwayat Transaksi Customer
             Route::get('/sales', [SalesTransactionController::class, 'index']);
             Route::get('/sales/{id}', [SalesTransactionController::class, 'show']);
             Route::post('/sales', [SalesTransactionController::class, 'store']);
+            Route::put('/sales/{id}', [SalesTransactionController::class, 'update']);
             Route::delete('/sales/{id}', [SalesTransactionController::class, 'destroy']);
+
+            // Laporan Keuangan & Penjualan + Riwayat Aktivitas Akun
+            Route::get('/reports', [ReportController::class, 'index']);
+            Route::get('/activity-logs', [ActivityLogController::class, 'index']);
 
             // Vendor
             Route::get('/vendors', [VendorController::class, 'index']);

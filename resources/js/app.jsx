@@ -7,23 +7,22 @@ import Dashboard from './admin/dashboard';
 import VendorDashboard from './vendor/dashboard';
 import CustomerDashboard from './customer/dashboard';
 import {
+    SESSION_EXPIRES_AT_KEY,
     SESSION_INVALIDATED_EVENT,
     TOKEN_STORAGE_KEY,
     USER_STORAGE_KEY,
-    checkServerHealth,
     clearAuthSession,
+    getRemainingSessionMs,
     getStoredToken,
     getStoredUser,
+    isSessionExpired,
     performLogout,
     resolveDashboardPageByRole,
     saveAuthSession,
     validateSessionWithServer,
 } from './utils/session';
 
-const HEALTH_POLL_INTERVAL_MS = 4000;
-const HEALTH_REQUEST_TIMEOUT_MS = 3500;
-const HEALTH_RETRY_DELAY_MS = 1000;
-const VITE_DISCONNECT_GRACE_MS = 2500;
+const SESSION_CHECK_INTERVAL_MS = 30000; // Cek masa aktif sesi 24 jam setiap 30 detik
 
 function LandingPage({ onLogin }) {
     return (
@@ -154,6 +153,11 @@ function LandingPage({ onLogin }) {
 }
 
 function App() {
+    const expiredOnBoot = isSessionExpired();
+    if (expiredOnBoot) {
+        clearAuthSession();
+    }
+
     const initialToken = getStoredToken();
     const initialUser = initialToken ? getStoredUser() : null;
 
@@ -162,35 +166,43 @@ function App() {
     }
 
     const [currentUser, setCurrentUser] = useState(initialUser);
-    const [sessionNotice, setSessionNotice] = useState('');
+    const [sessionNotice, setSessionNotice] = useState(
+        expiredOnBoot
+            ? 'Sesi login 24 jam Anda telah berakhir. Silakan login kembali.'
+            : ''
+    );
     const [isBootstrapping, setIsBootstrapping] = useState(
         Boolean(initialToken)
     );
     const [page, setPage] = useState(() => {
+        if (expiredOnBoot) {
+            return 'login';
+        }
         if (!initialToken || !initialUser) {
             return 'landing';
         }
         return resolveDashboardPageByRole(initialUser.role) || 'landing';
     });
 
-    const isUnloadingRef = useRef(false);
-    const healthCheckInFlightRef = useRef(false);
     const logoutInProgressRef = useRef(false);
-    const viteDisconnectTimerRef = useRef(null);
 
     /**
-     * Logout lokal terpusat ketika server Laravel / Vite terputus
-     * atau ketika token ditolak oleh server.
+     * Logout otomatis ketika sesi melewati batas 24 jam atau token tidak lagi valid.
      */
     const forceLocalLogout = useCallback(
-        (noticeMessage = '', targetPage = 'login') => {
-            if (isUnloadingRef.current || logoutInProgressRef.current) {
+        (noticeMessage = '', targetPage = 'login', notifyBackend = false) => {
+            if (logoutInProgressRef.current) {
                 return;
             }
 
             logoutInProgressRef.current = true;
 
-            clearAuthSession();
+            if (notifyBackend) {
+                performLogout({ notifyBackend: true });
+            } else {
+                clearAuthSession();
+            }
+
             setCurrentUser(null);
             setIsBootstrapping(false);
 
@@ -208,11 +220,18 @@ function App() {
     );
 
     /**
-     * 1. Validasi sesi awal saat aplikasi dibuka / dimuat ulang:
-     *    Memeriksa `/api/health` dan `/api/v1/auth/me` agar aplikasi tidak
-     *    menganggap user masih login hanya dari state localStorage.
+     * 1. Validasi sesi awal saat aplikasi dibuka / dimuat ulang.
      */
     useEffect(() => {
+        if (isSessionExpired()) {
+            forceLocalLogout(
+                'Sesi login 24 jam Anda telah berakhir. Silakan login kembali.',
+                'login',
+                true
+            );
+            return;
+        }
+
         const token = getStoredToken();
         if (!token) {
             clearAuthSession();
@@ -225,23 +244,8 @@ function App() {
         let isActive = true;
 
         (async () => {
-            const health = await checkServerHealth({
-                timeoutMs: HEALTH_REQUEST_TIMEOUT_MS,
-                signal: abortController.signal,
-            });
-
-            if (!isActive || abortController.signal.aborted) return;
-
-            if (!health.alive) {
-                forceLocalLogout(
-                    'Server Laravel tidak aktif. Sesi sebelumnya telah diakhiri, silakan login kembali setelah server aktif.',
-                    'login'
-                );
-                return;
-            }
-
             const sessionResult = await validateSessionWithServer({
-                timeoutMs: 4500,
+                timeoutMs: 20000,
                 signal: abortController.signal,
             });
 
@@ -249,9 +253,8 @@ function App() {
 
             if (!sessionResult.valid || !sessionResult.user) {
                 const reasonMsg =
-                    sessionResult.reason === 'server_unreachable' ||
-                    sessionResult.reason === 'timeout'
-                        ? 'Koneksi ke server terputus. Silakan login kembali.'
+                    sessionResult.reason === 'expired_24h'
+                        ? 'Sesi login 24 jam Anda telah berakhir. Silakan login kembali.'
                         : 'Sesi login Anda telah berakhir atau tidak valid. Silakan login kembali.';
 
                 forceLocalLogout(reasonMsg, 'login');
@@ -283,8 +286,7 @@ function App() {
     }, [forceLocalLogout]);
 
     /**
-     * 2. Pemantauan berkala koneksi server Laravel (/api/health) untuk semua role
-     *    dan sinkronisasi ketersediaan token di localStorage.
+     * 2. Pemantauan durasi sesi 24 jam (otomatis logout setelah melewati 24 jam).
      */
     const isDashboardPage =
         page === 'dashboard' ||
@@ -297,131 +299,82 @@ function App() {
             return;
         }
 
-        const token = getStoredToken();
-        if (!token) {
-            forceLocalLogout(
-                'Sesi autentikasi tidak ditemukan. Silakan login kembali.',
-                'login'
-            );
-            return;
-        }
-
-        let isCancelled = false;
-        let retryTimerId = null;
-        const activeAbortController = new AbortController();
-
-        const runHealthCheck = async () => {
-            if (
-                isCancelled ||
-                isUnloadingRef.current ||
-                healthCheckInFlightRef.current
-            ) {
-                return;
+        const checkSession24hExpiry = () => {
+            if (isSessionExpired()) {
+                forceLocalLogout(
+                    'Sesi login 24 jam Anda telah berakhir. Silakan login kembali.',
+                    'login',
+                    true
+                );
+                return true;
             }
 
             if (!getStoredToken()) {
                 forceLocalLogout(
-                    'Token autentikasi telah dihapus. Silakan login kembali.',
+                    'Sesi autentikasi tidak ditemukan. Silakan login kembali.',
                     'login'
                 );
-                return;
+                return true;
             }
 
-            healthCheckInFlightRef.current = true;
+            return false;
+        };
 
-            try {
-                const firstCheck = await checkServerHealth({
-                    timeoutMs: HEALTH_REQUEST_TIMEOUT_MS,
-                    signal: activeAbortController.signal,
-                });
+        if (checkSession24hExpiry()) {
+            return;
+        }
 
-                if (
-                    isCancelled ||
-                    isUnloadingRef.current ||
-                    activeAbortController.signal.aborted
-                ) {
-                    return;
-                }
+        // Jadwalkan timer tepat pada sisa waktu menuju 24 jam
+        const remainingMs = getRemainingSessionMs();
+        const expiryTimeoutId = window.setTimeout(() => {
+            checkSession24hExpiry();
+        }, Math.min(remainingMs + 250, 2147483647));
 
-                if (firstCheck.alive) {
-                    return;
-                }
+        // Pemeriksaan berkala setiap 30 detik (misal setelah laptop sleep/wake)
+        const intervalId = window.setInterval(
+            checkSession24hExpiry,
+            SESSION_CHECK_INTERVAL_MS
+        );
 
-                await new Promise((resolve) => {
-                    retryTimerId = window.setTimeout(
-                        resolve,
-                        HEALTH_RETRY_DELAY_MS
-                    );
-                });
-
-                if (
-                    isCancelled ||
-                    isUnloadingRef.current ||
-                    activeAbortController.signal.aborted
-                ) {
-                    return;
-                }
-
-                const secondCheck = await checkServerHealth({
-                    timeoutMs: 2500,
-                    signal: activeAbortController.signal,
-                });
-
-                if (
-                    isCancelled ||
-                    isUnloadingRef.current ||
-                    activeAbortController.signal.aborted
-                ) {
-                    return;
-                }
-
-                if (!secondCheck.alive) {
-                    forceLocalLogout(
-                        'Koneksi ke server Laravel terputus. Anda telah dikeluarkan secara otomatis demi keamanan sesi.',
-                        'login'
-                    );
-                }
-            } finally {
-                healthCheckInFlightRef.current = false;
+        const handleVisibilityOrFocus = () => {
+            if (document.visibilityState === 'visible') {
+                checkSession24hExpiry();
             }
         };
 
-        runHealthCheck();
-
-        const intervalId = window.setInterval(
-            runHealthCheck,
-            HEALTH_POLL_INTERVAL_MS
-        );
+        window.addEventListener('focus', handleVisibilityOrFocus);
+        document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
         return () => {
-            isCancelled = true;
-            activeAbortController.abort();
+            window.clearTimeout(expiryTimeoutId);
             window.clearInterval(intervalId);
-            if (retryTimerId) {
-                window.clearTimeout(retryTimerId);
-            }
-            healthCheckInFlightRef.current = false;
+            window.removeEventListener('focus', handleVisibilityOrFocus);
+            document.removeEventListener(
+                'visibilitychange',
+                handleVisibilityOrFocus
+            );
         };
     }, [hasActiveSession, forceLocalLogout]);
 
     /**
-     * 3. Pantau koneksi WebSocket Vite/HMR serta event beforeunload & storage lintas tab.
+     * 3. Sinkronisasi event storage lintas tab & event invalidasi sesi (401).
      */
     useEffect(() => {
-        const handleBeforeUnload = () => {
-            isUnloadingRef.current = true;
-            if (viteDisconnectTimerRef.current) {
-                window.clearTimeout(viteDisconnectTimerRef.current);
-                viteDisconnectTimerRef.current = null;
-            }
-        };
-
         const handleStorageChange = (event) => {
             if (
                 event.key === TOKEN_STORAGE_KEY ||
                 event.key === USER_STORAGE_KEY ||
+                event.key === SESSION_EXPIRES_AT_KEY ||
                 event.key === null
             ) {
+                if (isSessionExpired() && hasActiveSession) {
+                    forceLocalLogout(
+                        'Sesi login 24 jam Anda telah berakhir. Silakan login kembali.',
+                        'login'
+                    );
+                    return;
+                }
+
                 const token = getStoredToken();
                 if (!token && hasActiveSession) {
                     forceLocalLogout(
@@ -435,90 +388,22 @@ function App() {
         const handleSessionInvalidated = (event) => {
             const customMessage =
                 event?.detail?.message ||
-                'Sesi Anda tidak lagi valid atau koneksi server terputus. Silakan login kembali.';
+                'Sesi login Anda telah berakhir. Silakan login kembali.';
             forceLocalLogout(customMessage, 'login');
         };
 
-        window.addEventListener('beforeunload', handleBeforeUnload);
         window.addEventListener('storage', handleStorageChange);
         window.addEventListener(
             SESSION_INVALIDATED_EVENT,
             handleSessionInvalidated
         );
 
-        const hot = import.meta.hot;
-        let onViteDisconnect = null;
-        let onViteConnect = null;
-        let onViteBeforeFullReload = null;
-
-        if (hot) {
-            onViteBeforeFullReload = () => {
-                isUnloadingRef.current = true;
-                if (viteDisconnectTimerRef.current) {
-                    window.clearTimeout(viteDisconnectTimerRef.current);
-                    viteDisconnectTimerRef.current = null;
-                }
-            };
-
-            onViteConnect = () => {
-                if (viteDisconnectTimerRef.current) {
-                    window.clearTimeout(viteDisconnectTimerRef.current);
-                    viteDisconnectTimerRef.current = null;
-                }
-            };
-
-            onViteDisconnect = () => {
-                if (isUnloadingRef.current || !getStoredToken()) {
-                    return;
-                }
-
-                if (viteDisconnectTimerRef.current) {
-                    window.clearTimeout(viteDisconnectTimerRef.current);
-                }
-
-                viteDisconnectTimerRef.current = window.setTimeout(async () => {
-                    viteDisconnectTimerRef.current = null;
-
-                    if (isUnloadingRef.current || !getStoredToken()) {
-                        return;
-                    }
-
-                    forceLocalLogout(
-                        'Server development (Vite) atau koneksi aplikasi terputus. Silakan login kembali setelah server aktif.',
-                        'login'
-                    );
-                }, VITE_DISCONNECT_GRACE_MS);
-            };
-
-            hot.on('vite:beforeFullReload', onViteBeforeFullReload);
-            hot.on('vite:ws:connect', onViteConnect);
-            hot.on('vite:ws:disconnect', onViteDisconnect);
-        }
-
         return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener(
                 SESSION_INVALIDATED_EVENT,
                 handleSessionInvalidated
             );
-
-            if (viteDisconnectTimerRef.current) {
-                window.clearTimeout(viteDisconnectTimerRef.current);
-                viteDisconnectTimerRef.current = null;
-            }
-
-            if (hot && typeof hot.off === 'function') {
-                if (onViteBeforeFullReload) {
-                    hot.off('vite:beforeFullReload', onViteBeforeFullReload);
-                }
-                if (onViteConnect) {
-                    hot.off('vite:ws:connect', onViteConnect);
-                }
-                if (onViteDisconnect) {
-                    hot.off('vite:ws:disconnect', onViteDisconnect);
-                }
-            }
         };
     }, [hasActiveSession, forceLocalLogout]);
 
@@ -528,6 +413,7 @@ function App() {
     const handleLoginSuccess = useCallback((result) => {
         const user = result?.user;
         const token = result?.token;
+        const expiresAt = result?.expiresAt;
 
         if (!user || !user.role || !token) {
             return;
@@ -541,7 +427,7 @@ function App() {
             return;
         }
 
-        saveAuthSession(token, user);
+        saveAuthSession(token, user, expiresAt);
         setSessionNotice('');
         setCurrentUser(user);
         setPage(targetDashboard);
@@ -561,7 +447,7 @@ function App() {
         return (
             <div className="app-session-loader">
                 <div className="app-session-spinner" />
-                <p>Memverifikasi sesi dan koneksi server Depotify...</p>
+                <p>Memverifikasi sesi akun Depotify...</p>
             </div>
         );
     }
