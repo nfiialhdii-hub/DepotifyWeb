@@ -291,15 +291,10 @@ function VendorCategory() {
                     >
                         <div className="category-modal-header">
                             <div>
-                                <p className="categories-label">
-                                    {editingCategory
-                                        ? 'EDIT KATEGORI '
-                                        : 'TAMBAH KATEGORI '}
-                                </p>
                                 <h2>
                                     {editingCategory
-                                        ? 'Perbarui Kategori'
-                                        : 'Kategori  Baru'}
+                                        ? 'Edit Kategori'
+                                        : 'Tambah Kategori'}
                                 </h2>
                             </div>
 

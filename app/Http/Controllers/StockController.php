@@ -151,6 +151,11 @@ class StockController extends Controller
                     'message' => 'Anda tidak memiliki akses untuk mengubah stok produk ini.',
                 ], 403);
             }
+        } elseif ($product->vendor_id !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stok gudang milik Supplier hanya dapat diubah oleh Supplier terkait.',
+            ], 403);
         }
 
         $validated = $request->validate([

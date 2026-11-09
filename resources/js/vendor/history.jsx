@@ -189,19 +189,10 @@ function VendorHistory({
             {ordersLoading ? (
                 <div className="supplier-state-box">
                     <h3>Memuat riwayat pesanan...</h3>
-                    <p>
-                        Sedang mengambil data riwayat Purchase Orders dari
-                        server Depotify.
-                    </p>
                 </div>
             ) : orders.length === 0 ? (
                 <div className="supplier-state-box">
                     <h3>Belum ada riwayat pesanan</h3>
-                    <p>
-                        {searchQuery || statusFilter
-                            ? 'Tidak ada riwayat pesanan yang cocok dengan kata kunci atau filter status yang dipilih.'
-                            : 'Saat ini belum ada pesanan yang selesai, dikirim, atau dibatalkan untuk akun supplier Anda.'}
-                    </p>
                 </div>
             ) : (
                 <>
@@ -329,10 +320,7 @@ function VendorHistory({
                     {/* Pagination */}
                     <div className="supplier-pagination">
                         <span className="supplier-pagination-info">
-                            Menampilkan {ordersMeta.from}–{ordersMeta.to} dari
-                            total {ordersMeta.total} pesanan (Halaman{' '}
-                            {ordersMeta.current_page} dari{' '}
-                            {ordersMeta.last_page})
+                            Halaman {ordersMeta.current_page} / {ordersMeta.last_page}
                         </span>
 
                         <div className="supplier-pagination-actions">

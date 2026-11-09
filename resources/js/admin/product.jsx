@@ -714,18 +714,9 @@ function Products() {
             <div className="products-header">
 
                 <div>
-                    <p className="products-label">
-                        MASTER DATA
-                    </p>
-
                     <h1>
                         Produk
                     </h1>
-
-                    <p className="products-description">
-                        Kelola data produk yang
-                        tersedia di depot.
-                    </p>
                 </div>
 
 
@@ -1068,21 +1059,11 @@ function Products() {
 
                             <div>
 
-                                <p className="products-label">
-                                    MASTER DATA
-                                </p>
-
                                 <h2>
                                     {editingProduct
                                         ? 'Edit Produk'
                                         : 'Tambah Produk'}
                                 </h2>
-
-                                <p>
-                                    {editingProduct
-                                        ? 'Perbarui informasi produk.'
-                                        : 'Masukkan informasi produk baru.'}
-                                </p>
 
                             </div>
 
@@ -1365,12 +1346,6 @@ function Products() {
                                         handleChange
                                     }
                                 />
-
-                                <small className="field-hint">
-                                    Isi jika produk
-                                    memiliki batas
-                                    minimum stok.
-                                </small>
 
                             </div>
 

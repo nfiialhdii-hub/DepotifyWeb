@@ -378,6 +378,13 @@ class PurchaseOrderController extends Controller
 
         foreach ($items as $item) {
             $product = $products[$item['product_id']];
+
+            if ($product->vendor_id !== null && (int) $product->vendor_id !== (int) $po->vendor_id) {
+                throw ValidationException::withMessages([
+                    'items' => ["Produk {$product->name} bukan milik Supplier yang dipilih."],
+                ]);
+            }
+
             // Untuk produk milik Supplier, gunakan harga jual supplier (selling_price);
             // fallback ke purchase_price jika produk lama milik depot.
             $price = $product->vendor_id !== null && (float) $product->selling_price > 0
@@ -429,6 +436,12 @@ class PurchaseOrderController extends Controller
             $qty = max(0, (int) $poItem->qty_ordered);
             if ($qty <= 0) {
                 continue;
+            }
+
+            if ((int) $supplierProduct->stock_content < $qty) {
+                throw ValidationException::withMessages([
+                    'status' => "Stok gudang Supplier untuk {$supplierProduct->name} tidak mencukupi (Tersedia: {$supplierProduct->stock_content}, Pesanan: {$qty}).",
+                ]);
             }
 
             $supplierProduct->stock_content = max(0, (int) $supplierProduct->stock_content - $qty);
@@ -633,16 +646,26 @@ class PurchaseOrderController extends Controller
     private function newNumber(): string
     {
         $prefix = 'PO-' . now()->format('Ymd') . '-';
-        $count = PurchaseOrder::where('po_number', 'like', $prefix . '%')->count();
+        $seq = PurchaseOrder::where('po_number', 'like', $prefix . '%')->count() + 1;
 
-        return $prefix . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+        do {
+            $candidate = $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            $seq++;
+        } while (PurchaseOrder::where('po_number', $candidate)->exists());
+
+        return $candidate;
     }
 
     private function newReceiptNumber(): string
     {
         $prefix = 'GR-' . now()->format('Ymd') . '-';
-        $count = GoodsReceipt::where('receipt_number', 'like', $prefix . '%')->count();
+        $seq = GoodsReceipt::where('receipt_number', 'like', $prefix . '%')->count() + 1;
 
-        return $prefix . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+        do {
+            $candidate = $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            $seq++;
+        } while (GoodsReceipt::where('receipt_number', $candidate)->exists());
+
+        return $candidate;
     }
 }

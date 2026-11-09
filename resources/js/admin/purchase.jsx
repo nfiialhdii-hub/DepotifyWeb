@@ -387,13 +387,7 @@ export default function Purchases() {
         <section className="purchases-page">
             <div className="purchases-heading">
                 <div>
-                    <p className="purchases-eyebrow">
-                        PENGADAAN BARANG
-                    </p>
                     <h1>Pembelian</h1>
-                    <p className="purchases-subtitle">
-                        Kelola pesanan stok depot kepada supplier.
-                    </p>
                 </div>
 
                 <button
@@ -459,10 +453,6 @@ export default function Purchases() {
                 <div className="purchase-list-heading">
                     <div>
                         <h2>Daftar Pembelian</h2>
-                        <p>
-                            Nomor pesanan, supplier, nilai, dan status
-                            pengadaan.
-                        </p>
                     </div>
 
                     <button
@@ -655,13 +645,7 @@ export default function Purchases() {
                     >
                         <div className="purchase-modal-header">
                             <div>
-                                <p className="purchases-eyebrow">
-                                    PURCHASE ORDER BARU
-                                </p>
                                 <h2>Buat Pembelian</h2>
-                                <p>
-                                    Catat barang yang akan dipesan dari supplier.
-                                </p>
                             </div>
 
                             <button
@@ -723,14 +707,7 @@ export default function Purchases() {
 
                         <div className="purchase-items-heading">
                             <div>
-                                <h3>Barang yang Dipesan dari Supplier</h3>
-                                <p>
-                                    {form.vendor_id
-                                        ? vendorProducts.length > 0
-                                            ? `Menampilkan ${vendorProducts.length} produk dari katalog supplier terpilih.`
-                                            : 'Supplier ini belum menambahkan produk ke katalognya. Minta supplier menambahkan produk di menu Produk.'
-                                        : 'Pilih supplier terlebih dahulu untuk menampilkan daftar produk yang dijual supplier tersebut.'}
-                                </p>
+                                <h3>Barang yang Dipesan</h3>
                             </div>
 
                             <button
@@ -883,7 +860,6 @@ export default function Purchases() {
                             <div className="purchase-total-box">
                                 <span>Total pembelian</span>
                                 <strong>{rupiah(total)}</strong>
-                                <small>Jumlah dihitung dari kuantitas × harga satuan produk.</small>
                             </div>
                         </div>
 
@@ -941,9 +917,6 @@ export default function Purchases() {
                     <div className="purchase-modal purchase-detail-modal">
                         <div className="purchase-modal-header">
                             <div>
-                                <p className="purchases-eyebrow">
-                                    DETAIL PURCHASE ORDER
-                                </p>
                                 <h2>
                                     {detail.po_number || `PO-${detail.id}`}
                                 </h2>

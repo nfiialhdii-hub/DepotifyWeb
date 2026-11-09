@@ -30,8 +30,11 @@ Route::prefix('v1')->group(function () use ($healthHandler) {
     Route::get('/health', $healthHandler);
 
     // Auth publik (Satu pintu login untuk semua role & registrasi khusus User/Customer)
-    Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/register', [AuthController::class, 'register']);
+    // Dilindungi rate-limiter untuk mencegah brute-force login & spam registrasi
+    Route::middleware('throttle:15,1')->group(function () {
+        Route::post('/auth/login', [AuthController::class, 'login']);
+        Route::post('/auth/register', [AuthController::class, 'register']);
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
 

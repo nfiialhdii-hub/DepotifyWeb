@@ -133,7 +133,6 @@ function VendorProfile({ user, onProfileUpdated, onShowFeedback }) {
         return (
             <div className="supplier-state-box">
                 <h3>Memuat profil supplier...</h3>
-                <p>Mengambil informasi perusahaan dan akun dari server.</p>
             </div>
         );
     }

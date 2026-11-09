@@ -413,36 +413,36 @@ export default function Transactions() {
                                                         ⌕
                                                     </button>
 
-                                                    {tx.status ===
-                                                        'processing' && (
-                                                        <button
-                                                            type="button"
-                                                            className="adm-btn-primary adm-btn-sm"
-                                                            onClick={() =>
-                                                                handleChangeStatus(
-                                                                    tx,
-                                                                    'completed'
-                                                                )
-                                                            }
-                                                        >
-                                                            ✓ Selesai
-                                                        </button>
-                                                    )}
+                                                    {['pending', 'processing'].includes(
+                                                        tx.status
+                                                    ) && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                className="adm-btn-primary adm-btn-sm"
+                                                                onClick={() =>
+                                                                    handleChangeStatus(
+                                                                        tx,
+                                                                        'completed'
+                                                                    )
+                                                                }
+                                                            >
+                                                                ✓ Selesai
+                                                            </button>
 
-                                                    {tx.status !==
-                                                        'cancelled' && (
-                                                        <button
-                                                            type="button"
-                                                            className="adm-btn-danger adm-btn-sm"
-                                                            onClick={() =>
-                                                                handleChangeStatus(
-                                                                    tx,
-                                                                    'cancelled'
-                                                                )
-                                                            }
-                                                        >
-                                                            ✕ Batal
-                                                        </button>
+                                                            <button
+                                                                type="button"
+                                                                className="adm-btn-danger adm-btn-sm"
+                                                                onClick={() =>
+                                                                    handleChangeStatus(
+                                                                        tx,
+                                                                        'cancelled'
+                                                                    )
+                                                                }
+                                                            >
+                                                                ✕ Batal
+                                                            </button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </td>
@@ -586,28 +586,36 @@ export default function Transactions() {
                                 Tutup
                             </button>
 
-                            {detail.status === 'processing' && (
-                                <button
-                                    type="button"
-                                    className="adm-btn-primary"
-                                    onClick={() =>
-                                        handleChangeStatus(detail, 'completed')
-                                    }
-                                >
-                                    ✓ Tandai Selesai
-                                </button>
-                            )}
+                            {['pending', 'processing'].includes(
+                                detail.status
+                            ) && (
+                                <>
+                                    <button
+                                        type="button"
+                                        className="adm-btn-primary"
+                                        onClick={() =>
+                                            handleChangeStatus(
+                                                detail,
+                                                'completed'
+                                            )
+                                        }
+                                    >
+                                        ✓ Tandai Selesai
+                                    </button>
 
-                            {detail.status !== 'cancelled' && (
-                                <button
-                                    type="button"
-                                    className="adm-btn-danger"
-                                    onClick={() =>
-                                        handleChangeStatus(detail, 'cancelled')
-                                    }
-                                >
-                                    ✕ Batalkan
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="adm-btn-danger"
+                                        onClick={() =>
+                                            handleChangeStatus(
+                                                detail,
+                                                'cancelled'
+                                            )
+                                        }
+                                    >
+                                        ✕ Batalkan
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>

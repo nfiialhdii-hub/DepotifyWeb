@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\PurchaseOrderItem;
+use App\Models\SalesTransactionItem;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
@@ -72,19 +74,32 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureVendorScopedProductIndexes();
+
         $user = $request->user();
         $vendor = ($user && $user->isVendor()) ? $this->resolveVendor($user) : null;
+
+        $categoryRule = Rule::exists('categories', 'id');
+        $skuUniqueRule = Rule::unique('products', 'sku');
+
+        if ($vendor) {
+            $categoryRule = $categoryRule->where('vendor_id', $vendor->id);
+            $skuUniqueRule = $skuUniqueRule->where('vendor_id', $vendor->id);
+        } else {
+            $categoryRule = $categoryRule->whereNull('vendor_id');
+            $skuUniqueRule = $skuUniqueRule->whereNull('vendor_id');
+        }
 
         $validated = $request->validate([
             'category_id' => [
                 'required',
-                'exists:categories,id',
+                $categoryRule,
             ],
             'sku' => [
                 'nullable',
                 'string',
                 'max:50',
-                'unique:products,sku',
+                $skuUniqueRule,
             ],
             'name' => [
                 'required',
@@ -172,16 +187,36 @@ class ProductController extends Controller
             ], 403);
         }
 
+        if (!$vendor && $product->vendor_id !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk katalog Supplier hanya dapat diubah oleh Supplier terkait.',
+            ], 403);
+        }
+
+        $categoryRule = Rule::exists('categories', 'id');
+        $skuUniqueRule = Rule::unique('products', 'sku')->ignore($product->id);
+
+        if ($vendor) {
+            $categoryRule = $categoryRule->where('vendor_id', $vendor->id);
+            $skuUniqueRule = $skuUniqueRule->where('vendor_id', $vendor->id);
+        } else {
+            $categoryRule = $categoryRule->whereNull('vendor_id');
+            $skuUniqueRule = $skuUniqueRule->whereNull('vendor_id');
+        }
+
+        $this->ensureVendorScopedProductIndexes();
+
         $validated = $request->validate([
             'category_id' => [
                 'required',
-                'exists:categories,id',
+                $categoryRule,
             ],
             'sku' => [
                 'nullable',
                 'string',
                 'max:50',
-                Rule::unique('products', 'sku')->ignore($product->id),
+                $skuUniqueRule,
             ],
             'name' => [
                 'required',
@@ -262,11 +297,18 @@ class ProductController extends Controller
                     'message' => 'Anda tidak memiliki akses untuk menghapus produk ini.',
                 ], 403);
             }
+        } elseif ($product->vendor_id !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk katalog Supplier hanya dapat dihapus oleh Supplier terkait.',
+            ], 403);
         }
 
         if (
             $product->stockMovements()->exists()
             || PurchaseOrderItem::where('product_id', $product->id)->exists()
+            || SalesTransactionItem::where('product_id', $product->id)->exists()
+            || Product::where('source_product_id', $product->id)->exists()
         ) {
             return response()->json([
                 'success' => false,
@@ -293,5 +335,26 @@ class ProductController extends Controller
                 'address' => null,
             ]
         );
+    }
+
+    /**
+     * Pastikan index unique global lama pada tabel products (misal products_sku_unique)
+     * dilepas agar SKU produk milik Supplier tidak bentrok dengan SKU produk milik Owner.
+     */
+    private function ensureVendorScopedProductIndexes(): void
+    {
+        try {
+            $indexes = collect(DB::select('SHOW INDEX FROM `products` WHERE Non_unique = 0 AND Key_name != "PRIMARY"'))
+                ->groupBy('Key_name');
+
+            foreach ($indexes as $keyName => $columns) {
+                $colNames = $columns->pluck('Column_name')->all();
+                if (!in_array('vendor_id', $colNames, true)) {
+                    DB::statement("ALTER TABLE `products` DROP INDEX `{$keyName}`");
+                }
+            }
+        } catch (\Throwable $e) {
+            // Abaikan jika index sudah disesuaikan
+        }
     }
 }

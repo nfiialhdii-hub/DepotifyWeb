@@ -203,17 +203,9 @@ function Dashboard({ user, onLogout }) {
 
                     <div>
 
-                        <p className="dashboard-label">
-                            OVERVIEW
-                        </p>
-
                         <h1>
                             Dashboard
                         </h1>
-
-                        <p>
-                            Ringkasan aktivitas depot hari ini.
-                        </p>
 
                     </div>
 
@@ -353,10 +345,6 @@ function Dashboard({ user, onLogout }) {
 
                         <div>
 
-                            <p className="section-label">
-                                PERFORMA
-                            </p>
-
                             <h2>
                                 Penjualan 7 Hari Terakhir
                             </h2>
@@ -452,10 +440,6 @@ function Dashboard({ user, onLogout }) {
 
                             <div>
 
-                                <p className="section-label">
-                                    PERSEDIAAN
-                                </p>
-
                                 <h2>
                                     Stok Menipis
                                 </h2>
@@ -528,10 +512,6 @@ function Dashboard({ user, onLogout }) {
                         <div className="section-header">
 
                             <div>
-
-                                <p className="section-label">
-                                    PENJUALAN
-                                </p>
 
                                 <h2>
                                     Produk Terlaris
@@ -608,10 +588,6 @@ function Dashboard({ user, onLogout }) {
                     <div className="section-header">
 
                         <div>
-
-                            <p className="section-label">
-                                AKTIVITAS
-                            </p>
 
                             <h2>
                                 Transaksi Terbaru

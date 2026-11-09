@@ -189,11 +189,7 @@ export default function Vendors() {
         <main className="vendors-page">
             <header className="vendors-header">
                 <div>
-                    <p className="vendors-label">DATA MASTER</p>
                     <h1>Supplier</h1>
-                    <p className="vendors-description">
-                        Kelola data pemasok sekaligus akun login supplier.
-                    </p>
                 </div>
                 <button className="vendor-primary" onClick={openAdd}>
                     + Tambah Supplier
@@ -226,7 +222,6 @@ export default function Vendors() {
                 <div className="vendor-toolbar">
                     <div>
                         <h2>Daftar Supplier</h2>
-                        <p>Setiap supplier dapat memiliki akun login sendiri.</p>
                     </div>
                     <input
                         className="vendor-search"
@@ -257,7 +252,6 @@ export default function Vendors() {
                                 <tr key={vendor.id}>
                                     <td>
                                         <strong>{vendor.name}</strong>
-                                        <small>ID: {vendor.id}</small>
                                     </td>
                                     <td>{vendor.phone || "—"}</td>
                                     <td>{vendor.user?.email || "Belum ada akun"}</td>
@@ -284,9 +278,6 @@ export default function Vendors() {
                 <div className="vendor-overlay">
                     <section className="vendor-modal" role="dialog" aria-modal="true" aria-labelledby="vendor-form-title">
                         <h2 id="vendor-form-title">{selected ? "Edit Supplier" : "Tambah Supplier"}</h2>
-                        <p className="vendor-form-note">
-                            Data supplier dan akun login dikelola bersamaan oleh owner.
-                        </p>
 
                         <form onSubmit={saveVendor}>
                             <label>
@@ -322,7 +313,6 @@ export default function Vendors() {
 
                             <div className="vendor-account-section">
                                 <h3>Akun Login Supplier</h3>
-                                <p>Gunakan email ini untuk login ke Depotify.</p>
 
                                 <label>
                                     Email login *

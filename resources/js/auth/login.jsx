@@ -201,11 +201,6 @@ function Login({ onBack, onLoginSuccess, sessionNotice = '' }) {
                 <div className="login-brand">
                     <div className="brand-mark">⌁</div>
                     <h1>Depotify</h1>
-                    <p>
-                        {isRegisterMode
-                            ? 'Daftarkan akun pengguna Anda untuk mengakses layanan dan informasi katalog produk depot.'
-                            : 'Sistem pengelolaan operasional, inventaris stok, transaksi, dan kemitraan depot terintegrasi.'}
-                    </p>
                 </div>
 
                 <div className="login-card">
@@ -221,21 +216,11 @@ function Login({ onBack, onLoginSuccess, sessionNotice = '' }) {
                     )}
 
                     <div className="login-heading">
-                        <p className="section-label">
-                            {isRegisterMode
-                                ? 'REGISTRASI AKUN USER'
-                                : 'AUTENTIKASI AKUN'}
-                        </p>
                         <h2>
                             {isRegisterMode
-                                ? 'Buat akun baru'
-                                : 'Selamat datang kembali'}
+                                ? 'Buat Akun Baru'
+                                : 'Masuk Akun'}
                         </h2>
-                        <p>
-                            {isRegisterMode
-                                ? 'Lengkapi data di bawah ini untuk mendaftar sebagai pengguna Depotify.'
-                                : 'Masukkan email dan kata sandi Anda untuk masuk ke Depotify.'}
-                        </p>
                     </div>
 
                     {sessionNotice && !error && !successMessage && (

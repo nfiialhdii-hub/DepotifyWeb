@@ -30,9 +30,6 @@ function OrderDetailModal({
             >
                 <div className="supplier-modal-header">
                     <div>
-                        <p className="supplier-eyebrow">
-                            RINCIAN PURCHASE ORDER
-                        </p>
                         <h3>{order.po_number}</h3>
                     </div>
 

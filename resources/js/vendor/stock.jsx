@@ -266,14 +266,7 @@ function VendorStock() {
                     >
                         <div className="product-modal-header">
                             <div>
-                                <p className="products-label">
-                                    UPDATE STOK GUDANG SUPPLIER
-                                </p>
                                 <h2>{editingItem.name}</h2>
-                                <p>
-                                    Sesuaikan jumlah stok siap kirim di gudang
-                                    supplier Anda.
-                                </p>
                             </div>
 
                             <button

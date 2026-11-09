@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
@@ -56,25 +57,42 @@ class CategoryController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureVendorScopedCategoryIndexes();
+
         $user = $request->user();
         $vendor = ($user && $user->isVendor()) ? $this->resolveVendor($user) : null;
+
+        $codeUniqueRule = Rule::unique('categories', 'code');
+        $nameUniqueRule = Rule::unique('categories', 'name');
+
+        if ($vendor) {
+            $codeUniqueRule = $codeUniqueRule->where('vendor_id', $vendor->id);
+            $nameUniqueRule = $nameUniqueRule->where('vendor_id', $vendor->id);
+        } else {
+            $codeUniqueRule = $codeUniqueRule->whereNull('vendor_id');
+            $nameUniqueRule = $nameUniqueRule->whereNull('vendor_id');
+        }
 
         $validated = $request->validate([
             'code' => [
                 'required',
                 'string',
                 'max:20',
-                'unique:categories,code',
+                $codeUniqueRule,
             ],
             'name' => [
                 'required',
                 'string',
                 'max:100',
+                $nameUniqueRule,
             ],
             'description' => [
                 'nullable',
                 'string',
             ],
+        ], [
+            'code.unique' => 'Kode kategori ini sudah digunakan di daftar kategori Anda.',
+            'name.unique' => 'Nama kategori ini sudah ada di daftar kategori Anda.',
         ]);
 
         $category = Category::create([
@@ -95,8 +113,11 @@ class CategoryController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->ensureVendorScopedCategoryIndexes();
+
         $category = Category::findOrFail($id);
         $user = $request->user();
+        $vendor = null;
 
         if ($user && $user->isVendor()) {
             $vendor = $this->resolveVendor($user);
@@ -106,6 +127,22 @@ class CategoryController extends Controller
                     'message' => 'Anda tidak memiliki akses untuk mengubah kategori ini.',
                 ], 403);
             }
+        } elseif ($category->vendor_id !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori milik Supplier tidak dapat diubah dari akun Owner.',
+            ], 403);
+        }
+
+        $codeUniqueRule = Rule::unique('categories', 'code')->ignore($category->id);
+        $nameUniqueRule = Rule::unique('categories', 'name')->ignore($category->id);
+
+        if ($vendor) {
+            $codeUniqueRule = $codeUniqueRule->where('vendor_id', $vendor->id);
+            $nameUniqueRule = $nameUniqueRule->where('vendor_id', $vendor->id);
+        } else {
+            $codeUniqueRule = $codeUniqueRule->whereNull('vendor_id');
+            $nameUniqueRule = $nameUniqueRule->whereNull('vendor_id');
         }
 
         $validated = $request->validate([
@@ -113,17 +150,21 @@ class CategoryController extends Controller
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('categories', 'code')->ignore($category->id),
+                $codeUniqueRule,
             ],
             'name' => [
                 'required',
                 'string',
                 'max:100',
+                $nameUniqueRule,
             ],
             'description' => [
                 'nullable',
                 'string',
             ],
+        ], [
+            'code.unique' => 'Kode kategori ini sudah digunakan di daftar kategori Anda.',
+            'name.unique' => 'Nama kategori ini sudah ada di daftar kategori Anda.',
         ]);
 
         $category->update($validated);
@@ -148,6 +189,11 @@ class CategoryController extends Controller
                     'message' => 'Anda tidak memiliki akses untuk menghapus kategori ini.',
                 ], 403);
             }
+        } elseif ($category->vendor_id !== null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori milik Supplier tidak dapat dihapus dari akun Owner.',
+            ], 403);
         }
 
         if ($category->products()->exists()) {
@@ -176,5 +222,26 @@ class CategoryController extends Controller
                 'address' => null,
             ]
         );
+    }
+
+    /**
+     * Pastikan index unique global lama pada tabel categories (misal categories_code_unique / categories_name_unique)
+     * dilepas dan diganti index komposit per vendor_id agar kategori Vendor tidak bentrok dengan kategori Owner.
+     */
+    private function ensureVendorScopedCategoryIndexes(): void
+    {
+        try {
+            $indexes = collect(DB::select('SHOW INDEX FROM `categories` WHERE Non_unique = 0 AND Key_name != "PRIMARY"'))
+                ->groupBy('Key_name');
+
+            foreach ($indexes as $keyName => $columns) {
+                $colNames = $columns->pluck('Column_name')->all();
+                if (!in_array('vendor_id', $colNames, true)) {
+                    DB::statement("ALTER TABLE `categories` DROP INDEX `{$keyName}`");
+                }
+            }
+        } catch (\Throwable $e) {
+            // Abaikan jika index sudah disesuaikan
+        }
     }
 }

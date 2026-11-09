@@ -393,15 +393,10 @@ function VendorProducts() {
                     >
                         <div className="product-modal-header">
                             <div>
-                                <p className="products-label">
-                                    {editingProduct
-                                        ? 'EDIT PRODUK '
-                                        : 'TAMBAH PRODUK '}
-                                </p>
                                 <h2>
                                     {editingProduct
-                                        ? 'Perbarui Produk '
-                                        : 'Produk Baru'}
+                                        ? 'Edit Produk'
+                                        : 'Tambah Produk'}
                                 </h2>
                             </div>
 

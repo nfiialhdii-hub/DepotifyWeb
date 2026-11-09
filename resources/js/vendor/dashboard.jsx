@@ -177,11 +177,7 @@ function VendorDashboard({ user, onLogout }) {
         if (dashboardLoading) {
             return (
                 <div className="supplier-state-box">
-                    <h3>Memuat ringkasan dashboard supplier...</h3>
-                    <p>
-                        Mengambil statistik pesanan dan daftar Purchase Order
-                        terbaru dari server.
-                    </p>
+                    <h3>Memuat data...</h3>
                 </div>
             );
         }
@@ -273,11 +269,6 @@ function VendorDashboard({ user, onLogout }) {
                     {recentOrders.length === 0 ? (
                         <div className="supplier-state-box">
                             <h3>Belum ada pesanan pembelian</h3>
-                            <p>
-                                Pesanan pembelian dari Owner Depotify yang
-                                ditujukan ke akun supplier Anda akan otomatis
-                                muncul di halaman ini.
-                            </p>
                         </div>
                     ) : (
                         <div className="supplier-table-wrap">
@@ -515,14 +506,7 @@ function VendorDashboard({ user, onLogout }) {
             <main className="supplier-main">
                 <header className="supplier-header">
                     <div>
-                        <p className="supplier-eyebrow">
-                            DASHBOARD
-                        </p>
                         <h1>Halo, {supplierDisplayName}</h1>
-                        <p>
-                            Pantau pesanan pembelian dari Depotify, konfirmasi
-                            ketersediaan barang, dan kelola pengiriman Anda.
-                        </p>
                     </div>
 
                     <div className="supplier-user-card">

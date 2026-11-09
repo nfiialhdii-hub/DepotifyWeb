@@ -217,20 +217,14 @@ class SalesTransactionController extends Controller
 
             $totalAmount = 0;
 
-            $productIds = collect($data['items'])
-                ->pluck('product_id')
-                ->unique();
-
-            $products = Product::whereIn('id', $productIds)
-                ->get()
-                ->keyBy('id');
-
             foreach ($data['items'] as $item) {
-                $product = $products->get($item['product_id']);
+                $product = Product::whereKey($item['product_id'])
+                    ->lockForUpdate()
+                    ->first();
 
-                if (!$product) {
+                if (!$product || $product->vendor_id !== null) {
                     throw ValidationException::withMessages([
-                        'items' => ['Produk tidak ditemukan.'],
+                        'items' => ['Produk depot tidak ditemukan atau tidak valid.'],
                     ]);
                 }
 
@@ -397,6 +391,13 @@ class SalesTransactionController extends Controller
             ]);
         }
 
+        if ($oldStatus === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi yang sudah selesai tidak dapat dibatalkan atau diubah kembali.',
+            ], 409);
+        }
+
         if ($oldStatus === 'cancelled') {
             return response()->json([
                 'success' => false,
@@ -502,13 +503,17 @@ class SalesTransactionController extends Controller
     private function newTransactionCode(): string
     {
         $prefix = 'SALE-' . now()->format('Ymd') . '-';
-
-        $count = SalesTransaction::where(
+        $seq = SalesTransaction::where(
             'transaction_code',
             'like',
             $prefix . '%'
-        )->count();
+        )->count() + 1;
 
-        return $prefix . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+        do {
+            $candidate = $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT);
+            $seq++;
+        } while (SalesTransaction::where('transaction_code', $candidate)->exists());
+
+        return $candidate;
     }
 }

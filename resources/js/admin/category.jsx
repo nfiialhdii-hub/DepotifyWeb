@@ -811,20 +811,9 @@ function Category() {
 
                 <div>
 
-                    <p className="categories-label">
-                        MASTER DATA
-                    </p>
-
-
                     <h1>
                         Kategori
                     </h1>
-
-
-                    <p className="categories-description">
-                        Kelola kategori produk
-                        yang tersedia di depot.
-                    </p>
 
                 </div>
 
@@ -1117,11 +1106,6 @@ function Category() {
 
                             <div>
 
-                                <p className="categories-label">
-                                    MASTER DATA
-                                </p>
-
-
                                 <h2>
 
                                     {editingCategory
@@ -1129,15 +1113,6 @@ function Category() {
                                         : 'Tambah Kategori'}
 
                                 </h2>
-
-
-                                <p>
-
-                                    {editingCategory
-                                        ? 'Perbarui informasi kategori.'
-                                        : 'Masukkan informasi kategori baru.'}
-
-                                </p>
 
                             </div>
 

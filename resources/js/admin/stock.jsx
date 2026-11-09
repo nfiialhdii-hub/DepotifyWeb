@@ -118,10 +118,6 @@ const Stock = () => {
             <div className="stock-header">
                 <div>
                     <h1>Stok</h1>
-                    <p>
-                        Pantau stok produk dan ketersediaan
-                        barang depot.
-                    </p>
                 </div>
             </div>
 
