@@ -444,7 +444,62 @@ body:has(.vendor-overlay) {
         align-items: stretch;
     }
 
+    .vendors-header {
+        padding: 18px 16px;
+        border-radius: 22px;
+        gap: 12px;
+    }
+
+    .vendors-header h1 {
+        font-size: 20px;
+    }
+
+    .vendor-primary-btn {
+        width: 100%;
+        text-align: center;
+    }
+
     .vendor-search {
         width: 100%;
+    }
+
+    .vendor-card {
+        padding: 16px;
+        border-radius: 22px;
+    }
+
+    .vendor-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .vendor-table {
+        min-width: 620px;
+    }
+
+    .vendor-modal-backdrop {
+        padding: 12px;
+    }
+
+    .vendor-modal {
+        padding: 20px 16px;
+        border-radius: 22px;
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+    }
+
+    .vendor-detail {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .vendor-modal-actions {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+
+    .vendor-modal-actions button {
+        width: 100%;
+        text-align: center;
     }
 }

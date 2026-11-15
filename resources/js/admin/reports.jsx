@@ -389,6 +389,7 @@ export default function Reports({ user }) {
                             display: 'flex',
                             gap: '8px',
                             alignItems: 'center',
+                            flexWrap: 'wrap',
                         }}
                     >
                         <input

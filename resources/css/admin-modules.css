@@ -470,3 +470,115 @@
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 768px) {
+    .adm-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 18px 16px;
+        border-radius: 22px;
+        margin-bottom: 16px;
+    }
+
+    .adm-header-title h1 {
+        font-size: 20px;
+    }
+
+    .adm-header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .adm-header-actions > * {
+        flex: 1 1 auto;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .adm-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .adm-tabs {
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .adm-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .adm-tab-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 8px 13px;
+        font-size: 12px;
+    }
+
+    .adm-panel {
+        padding: 16px;
+        border-radius: 22px;
+        margin-bottom: 16px;
+    }
+
+    .adm-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .adm-search {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .adm-select,
+    .adm-date-input {
+        width: 100%;
+    }
+
+    .adm-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .adm-table {
+        min-width: 600px;
+    }
+
+    .adm-pagination {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+        gap: 10px;
+    }
+
+    .adm-pagination-btns {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .adm-metrics-grid,
+    .adm-metrics-grid.cols-5 {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .adm-metric-card {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .adm-metric-value {
+        font-size: 19px;
+        word-break: break-word;
+    }
+}

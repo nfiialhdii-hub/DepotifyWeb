@@ -857,10 +857,128 @@
         align-items: stretch;
     }
 
+    .purchases-heading {
+        padding: 18px 16px;
+        border-radius: 22px;
+        gap: 12px;
+    }
+
+    .purchases-heading h1 {
+        font-size: 20px;
+    }
+
+    .purchases-heading-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .purchases-heading-actions > button {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+
     .purchase-summary-grid,
     .purchase-form-grid,
     .purchase-bottom-grid,
     .purchase-detail-meta {
         grid-template-columns: 1fr;
+    }
+
+    .purchase-summary-card {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .purchase-summary-card strong {
+        font-size: 18px;
+    }
+
+    .purchase-panel {
+        padding: 16px;
+        border-radius: 22px;
+    }
+
+    .purchase-search {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .purchase-filter-group {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .purchase-filter-group select {
+        width: 100%;
+    }
+
+    .purchase-modal-backdrop {
+        padding: 12px;
+        align-items: flex-start;
+        overflow-y: auto;
+    }
+
+    .purchase-modal {
+        width: 100%;
+        max-height: calc(100dvh - 24px);
+        border-radius: 22px;
+        margin: auto 0;
+    }
+
+    .purchase-modal-header {
+        padding: 16px 16px 12px;
+    }
+
+    .purchase-modal-header h2 {
+        font-size: 18px;
+    }
+
+    .purchase-form-grid,
+    .purchase-bottom-grid,
+    .purchase-detail-meta {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .purchase-items-box {
+        margin: 14px 16px;
+        padding: 14px;
+    }
+
+    .purchase-items-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .purchase-item-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid rgba(196, 205, 218, 0.55);
+    }
+
+    .purchase-detail-total,
+    .purchase-detail-notes,
+    .purchase-inline-warning {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+    .purchase-detail-total {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .purchase-modal-footer {
+        padding: 14px 16px 18px;
+        flex-wrap: wrap;
+    }
+
+    .purchase-modal-footer > button {
+        flex: 1 1 auto;
+        justify-content: center;
     }
 }

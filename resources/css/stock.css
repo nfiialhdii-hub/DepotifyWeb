@@ -257,8 +257,27 @@
 }
 
 @media (max-width: 700px) {
+    .stock-header {
+        padding: 18px 16px;
+        border-radius: 22px;
+    }
+
+    .stock-header h1 {
+        font-size: 20px;
+    }
+
     .stock-summary {
         grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stock-box {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .stock-box h2 {
+        font-size: 22px;
     }
 
     .stock-toolbar {
@@ -269,5 +288,16 @@
     .stock-toolbar input,
     .stock-toolbar select {
         width: 100%;
+    }
+
+    .stock-card {
+        padding: 16px;
+        border-radius: 22px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .stock-table {
+        min-width: 580px;
     }
 }

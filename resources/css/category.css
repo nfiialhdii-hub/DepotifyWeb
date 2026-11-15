@@ -625,5 +625,58 @@
     .categories-header {
         flex-direction: column;
         align-items: stretch;
+        padding: 18px 16px;
+        border-radius: 22px;
+        gap: 12px;
+    }
+
+    .categories-header h1 {
+        font-size: 20px;
+    }
+
+    .add-category-button {
+        width: 100%;
+        text-align: center;
+    }
+
+    .categories-card {
+        padding: 16px;
+        border-radius: 22px;
+    }
+
+    .categories-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .categories-table {
+        min-width: 520px;
+    }
+
+    .category-modal-overlay,
+    .category-delete-overlay {
+        padding: 12px;
+    }
+
+    .category-modal,
+    .category-delete-modal {
+        padding: 20px 16px;
+        border-radius: 22px;
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+    }
+
+    .category-form-actions,
+    .category-delete-actions {
+        flex-direction: column-reverse;
+        gap: 10px;
+    }
+
+    .category-cancel-button,
+    .category-save-button,
+    .category-delete-cancel,
+    .category-delete-confirm {
+        width: 100%;
+        justify-content: center;
     }
 }
