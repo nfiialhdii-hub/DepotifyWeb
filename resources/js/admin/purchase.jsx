@@ -368,14 +368,19 @@ export default function Purchases() {
     };
 
     // Di sisi Owner:
-    // - Saat status masih Pending (draft/ordered), Owner hanya bisa membatalkan pesanan.
-    // - Konfirmasi, tolak, dan pengiriman dilakukan oleh Supplier di Dashboard Supplier.
-    // - Saat Supplier sudah mengirim barang (shipped), Owner dapat klik Terima Barang.
+    // - Mendukung Direct Receive (Terima Barang langsung dari status draft/ordered/confirmed maupun shipped).
+    // - Saat status belum diterima, Owner juga dapat membatalkan pesanan.
     const allowedNext = (status) => ({
         draft: [
+            { value: 'received', label: 'Terima Barang (Tambah Stok)' },
             { value: 'cancelled', label: 'Batalkan Pesanan' },
         ],
         ordered: [
+            { value: 'received', label: 'Terima Barang (Tambah Stok)' },
+            { value: 'cancelled', label: 'Batalkan Pesanan' },
+        ],
+        confirmed: [
+            { value: 'received', label: 'Terima Barang (Tambah Stok)' },
             { value: 'cancelled', label: 'Batalkan Pesanan' },
         ],
         shipped: [

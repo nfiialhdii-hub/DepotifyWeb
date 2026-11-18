@@ -107,64 +107,66 @@ export default function Reports({ user }) {
 
         const bestRows =
             bestSelling.length === 0
-                ? '<tr><td colspan="5" style="text-align:center;color:#64748b;">Belum ada produk terjual</td></tr>'
+                ? '<tr><td colspan="5" class="text-center">Belum ada produk terjual pada periode ini.</td></tr>'
                 : bestSelling
                       .map(
                           (p, idx) => `
                     <tr>
-                        <td style="text-align:center;font-weight:700;">#${idx + 1}</td>
-                        <td><strong>${p.name}</strong>${p.variant ? ` (${p.variant})` : ''}</td>
-                        <td style="text-align:center;font-weight:700;">${p.total_qty_sold}</td>
-                        <td style="text-align:right;font-weight:700;">${rupiah(p.total_revenue)}</td>
-                        <td style="text-align:center;">${p.stock_content}</td>
+                        <td class="text-center">${idx + 1}</td>
+                        <td>${p.name}${p.variant ? ` (${p.variant})` : ''}</td>
+                        <td class="text-center">${p.total_qty_sold}</td>
+                        <td class="text-right">${rupiah(p.total_revenue)}</td>
+                        <td class="text-center">${p.stock_content}</td>
                     </tr>`
                       )
                       .join('');
 
         const leastRows =
             leastSelling.length === 0
-                ? '<tr><td colspan="5" style="text-align:center;color:#64748b;">Belum ada data produk</td></tr>'
+                ? '<tr><td colspan="5" class="text-center">Belum ada data produk.</td></tr>'
                 : leastSelling
                       .map(
                           (p, idx) => `
                     <tr>
-                        <td style="text-align:center;font-weight:700;">#${idx + 1}</td>
-                        <td><strong>${p.name}</strong>${p.variant ? ` (${p.variant})` : ''}</td>
-                        <td style="text-align:center;font-weight:700;">${p.total_qty_sold}</td>
-                        <td style="text-align:right;">${rupiah(p.total_revenue)}</td>
-                        <td style="text-align:center;">${p.stock_content}</td>
+                        <td class="text-center">${idx + 1}</td>
+                        <td>${p.name}${p.variant ? ` (${p.variant})` : ''}</td>
+                        <td class="text-center">${p.total_qty_sold}</td>
+                        <td class="text-right">${rupiah(p.total_revenue)}</td>
+                        <td class="text-center">${p.stock_content}</td>
                     </tr>`
                       )
                       .join('');
 
         const incomeRows =
             incomeList.length === 0
-                ? '<tr><td colspan="5" style="text-align:center;color:#64748b;">Belum ada pemasukan</td></tr>'
+                ? '<tr><td colspan="6" class="text-center">Tidak ada data pemasukan pada periode ini.</td></tr>'
                 : incomeList
                       .map(
-                          (item) => `
+                          (item, idx) => `
                     <tr>
-                        <td><strong>${item.code}</strong></td>
+                        <td class="text-center">${idx + 1}</td>
+                        <td>${item.code}</td>
                         <td>${formatDate(item.date)}</td>
                         <td>${item.party_name}</td>
                         <td>${item.items_summary || '-'}</td>
-                        <td style="text-align:right;font-weight:700;color:#15803d;">+ ${rupiah(item.amount)}</td>
+                        <td class="text-right">${rupiah(item.amount)}</td>
                     </tr>`
                       )
                       .join('');
 
         const expenseRows =
             expenseList.length === 0
-                ? '<tr><td colspan="5" style="text-align:center;color:#64748b;">Belum ada pengeluaran</td></tr>'
+                ? '<tr><td colspan="6" class="text-center">Tidak ada data pengeluaran pada periode ini.</td></tr>'
                 : expenseList
                       .map(
-                          (item) => `
+                          (item, idx) => `
                     <tr>
-                        <td><strong>${item.code}</strong></td>
+                        <td class="text-center">${idx + 1}</td>
+                        <td>${item.code}</td>
                         <td>${formatDate(item.date)}</td>
                         <td>${item.party_name}</td>
                         <td>${item.items_summary || '-'}</td>
-                        <td style="text-align:right;font-weight:700;color:#dc2626;">- ${rupiah(item.amount)}</td>
+                        <td class="text-right">${rupiah(item.amount)}</td>
                     </tr>`
                       )
                       .join('');
@@ -173,89 +175,208 @@ export default function Reports({ user }) {
 <html lang="id">
 <head>
     <meta charset="utf-8" />
-    <title>Laporan Depotify - ${periodInfo.label || 'Semua Waktu'}</title>
+    <title>Laporan Keuangan Depotify - ${periodInfo.label || 'Semua Waktu'}</title>
     <style>
-        @page { size: A4; margin: 14mm; }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { color: #1e293b; margin: 0; padding: 0; font-size: 12px; line-height: 1.45; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #0284c7; padding-bottom: 12px; margin-bottom: 18px; }
-        .brand h1 { margin: 0; font-size: 22px; color: #0284c7; }
-        .meta { text-align: right; font-size: 11.5px; color: #334155; }
-        .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 18px; }
-        .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: #f8fafc; }
-        .card span { display: block; font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700; }
-        .card strong { display: block; font-size: 14px; margin-top: 4px; color: #0f172a; }
-        h2 { font-size: 13px; text-transform: uppercase; color: #0f172a; margin: 16px 0 8px; border-left: 4px solid #16a34a; padding-left: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 11px; }
-        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
-        th { background: #e2e8f0; font-weight: 700; text-transform: uppercase; font-size: 10px; }
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .signature { margin-top: 28px; display: flex; justify-content: flex-end; }
-        .sig-box { text-align: center; width: 200px; }
-        .sig-space { height: 50px; }
+        @page { size: A4; margin: 16mm 15mm; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            color: #000000;
+            background: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-size: 11pt;
+            line-height: 1.4;
+        }
+        .doc-header {
+            text-align: center;
+            border-bottom: 3px double #000000;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+        .doc-header h1 {
+            margin: 0;
+            font-size: 16pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .doc-header h2 {
+            margin: 4px 0 2px;
+            font-size: 12.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .doc-header p {
+            margin: 0;
+            font-size: 10pt;
+        }
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+            font-size: 10.5pt;
+        }
+        .meta-table td {
+            border: none;
+            padding: 2px 0;
+        }
+        .section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 16px 0 6px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid #000000;
+        }
+        table.formal-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+            font-size: 10pt;
+        }
+        table.formal-table th,
+        table.formal-table td {
+            border: 1px solid #000000;
+            padding: 5px 7px;
+            text-align: left;
+            vertical-align: top;
+            color: #000000;
+        }
+        table.formal-table th {
+            background-color: #efefef;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9.5pt;
+        }
+        table.formal-table tfoot td {
+            font-weight: bold;
+            background-color: #f7f7f7;
+        }
+        .text-center { text-align: center !important; }
+        .text-right { text-align: right !important; }
+        .font-bold { font-weight: bold; }
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .signature-wrap {
+            margin-top: 28px;
+            display: flex;
+            justify-content: flex-end;
+            page-break-inside: avoid;
+        }
+        .sig-box {
+            text-align: center;
+            width: 220px;
+            font-size: 10.5pt;
+        }
+        .sig-space {
+            height: 60px;
+        }
+        .sig-name {
+            font-weight: bold;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="brand">
-            <h1>DEPOTIFY</h1>
-            <div>Laporan Keuangan & Penjualan Depot</div>
-        </div>
-        <div class="meta">
-            Periode: <strong>${periodInfo.label || 'Semua Waktu'}</strong><br/>
-            Dicetak: ${formatDate(new Date().toISOString())}
-        </div>
+    <div class="doc-header">
+        <h1>DEPOTIFY</h1>
+        <h2>Laporan Keuangan dan Penjualan Operasional Depot</h2>
+        <p>Sistem Informasi Manajemen Inventori &amp; Distribusi Air Mineral dan Gas LPG</p>
     </div>
 
-    <div class="summary-grid">
-        <div class="card">
-            <span>Pemasukan</span>
-            <strong style="color:#15803d;">${rupiah(summary.total_income)}</strong>
-        </div>
-        <div class="card">
-            <span>Pengeluaran</span>
-            <strong style="color:#dc2626;">${rupiah(summary.total_expense)}</strong>
-        </div>
-        <div class="card">
-            <span>Laba Bersih</span>
-            <strong style="color:#15803d;">${rupiah(summary.net_profit)}</strong>
-        </div>
-        <div class="card">
-            <span>Rugi</span>
-            <strong style="color:#dc2626;">${rupiah(summary.net_loss)}</strong>
-        </div>
-        <div class="card">
-            <span>Saldo Bersih</span>
-            <strong>${rupiah(summary.net_balance)}</strong>
-        </div>
-    </div>
+    <table class="meta-table">
+        <tr>
+            <td style="width: 130px;"><strong>Periode Laporan</strong></td>
+            <td style="width: 10px;">:</td>
+            <td>${periodInfo.label || 'Semua Waktu'}</td>
+            <td style="width: 130px;"><strong>Tanggal Cetak</strong></td>
+            <td style="width: 10px;">:</td>
+            <td>${formatDate(new Date().toISOString())}</td>
+        </tr>
+        <tr>
+            <td><strong>Penanggung Jawab</strong></td>
+            <td>:</td>
+            <td>${ownerName}</td>
+            <td><strong>Status Kas</strong></td>
+            <td>:</td>
+            <td>${summary.net_balance >= 0 ? 'Surplus / Laba' : 'Defisit / Rugi'}</td>
+        </tr>
+    </table>
+
+    <div class="section-title">I. Ringkasan Rekapitulasi Keuangan</div>
+    <table class="formal-table">
+        <thead>
+            <tr>
+                <th class="text-center" style="width: 40px;">No</th>
+                <th>Komponen Keuangan</th>
+                <th>Keterangan</th>
+                <th class="text-right" style="width: 170px;">Jumlah (Rp)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-center">1</td>
+                <td class="font-bold">Total Pemasukan</td>
+                <td>Akumulasi transaksi penjualan pelanggan selesai (${summary.completed_sales_count || 0} transaksi)</td>
+                <td class="text-right font-bold">${rupiah(summary.total_income)}</td>
+            </tr>
+            <tr>
+                <td class="text-center">2</td>
+                <td class="font-bold">Total Pengeluaran</td>
+                <td>Akumulasi pembelian stok / PO supplier diterima (${summary.completed_po_count || 0} PO)</td>
+                <td class="text-right font-bold">${rupiah(summary.total_expense)}</td>
+            </tr>
+            <tr>
+                <td class="text-center">3</td>
+                <td class="font-bold">Laba Bersih</td>
+                <td>Selisih positif pendapatan terhadap pengeluaran operasional</td>
+                <td class="text-right font-bold">${rupiah(summary.net_profit)}</td>
+            </tr>
+            <tr>
+                <td class="text-center">4</td>
+                <td class="font-bold">Rugi</td>
+                <td>Selisih beban pengadaan apabila pengeluaran melebihi pemasukan</td>
+                <td class="text-right font-bold">${rupiah(summary.net_loss)}</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="text-right">SALDO KAS BERSIH (PEMASUKAN - PENGELUARAN)</td>
+                <td class="text-right">${rupiah(summary.net_balance)}</td>
+            </tr>
+        </tfoot>
+    </table>
 
     <div class="two-col">
         <div>
-            <h2>Barang Paling Laku</h2>
-            <table>
+            <div class="section-title">II.A. Daftar Barang Paling Laku</div>
+            <table class="formal-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Produk</th>
-                        <th>Terjual</th>
-                        <th>Pendapatan</th>
-                        <th>Stok</th>
+                        <th class="text-center" style="width: 32px;">No</th>
+                        <th>Nama Produk</th>
+                        <th class="text-center" style="width: 55px;">Terjual</th>
+                        <th class="text-right" style="width: 105px;">Pendapatan</th>
+                        <th class="text-center" style="width: 48px;">Stok</th>
                     </tr>
                 </thead>
                 <tbody>${bestRows}</tbody>
             </table>
         </div>
         <div>
-            <h2>Barang Jarang Dibeli</h2>
-            <table>
+            <div class="section-title">II.B. Daftar Barang Jarang Dibeli</div>
+            <table class="formal-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        <th>Produk</th>
-                        <th>Terjual</th>
-                        <th>Pendapatan</th>
-                        <th>Stok</th>
+                        <th class="text-center" style="width: 32px;">No</th>
+                        <th>Nama Produk</th>
+                        <th class="text-center" style="width: 55px;">Terjual</th>
+                        <th class="text-right" style="width: 105px;">Pendapatan</th>
+                        <th class="text-center" style="width: 48px;">Stok</th>
                     </tr>
                 </thead>
                 <tbody>${leastRows}</tbody>
@@ -263,39 +384,54 @@ export default function Reports({ user }) {
         </div>
     </div>
 
-    <h2>Pemasukan (Penjualan Customer)</h2>
-    <table>
+    <div class="section-title">III. Rincian Transaksi Pemasukan (Penjualan Pelanggan)</div>
+    <table class="formal-table">
         <thead>
             <tr>
-                <th>Kode</th>
-                <th>Tanggal</th>
-                <th>Customer</th>
-                <th>Barang</th>
-                <th style="text-align:right;">Nominal</th>
+                <th class="text-center" style="width: 36px;">No</th>
+                <th style="width: 125px;">Kode Transaksi</th>
+                <th style="width: 110px;">Tanggal</th>
+                <th style="width: 130px;">Nama Pelanggan</th>
+                <th>Rincian Barang</th>
+                <th class="text-right" style="width: 130px;">Nominal (Rp)</th>
             </tr>
         </thead>
         <tbody>${incomeRows}</tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-right">TOTAL PEMASUKAN</td>
+                <td class="text-right">${rupiah(summary.total_income)}</td>
+            </tr>
+        </tfoot>
     </table>
 
-    <h2>Pengeluaran (Pembelian Supplier)</h2>
-    <table>
+    <div class="section-title">IV. Rincian Transaksi Pengeluaran (Pembelian Supplier / PO)</div>
+    <table class="formal-table">
         <thead>
             <tr>
-                <th>Nomor PO</th>
-                <th>Tanggal</th>
-                <th>Supplier</th>
-                <th>Barang</th>
-                <th style="text-align:right;">Nominal</th>
+                <th class="text-center" style="width: 36px;">No</th>
+                <th style="width: 125px;">Nomor PO</th>
+                <th style="width: 110px;">Tanggal</th>
+                <th style="width: 130px;">Nama Supplier</th>
+                <th>Rincian Barang</th>
+                <th class="text-right" style="width: 130px;">Nominal (Rp)</th>
             </tr>
         </thead>
         <tbody>${expenseRows}</tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" class="text-right">TOTAL PENGELUARAN</td>
+                <td class="text-right">${rupiah(summary.total_expense)}</td>
+            </tr>
+        </tfoot>
     </table>
 
-    <div class="signature">
+    <div class="signature-wrap">
         <div class="sig-box">
-            <div>Mengetahui,</div>
+            <div>Mengetahui / Menyetujui,</div>
+            <div>Penanggung Jawab Depot</div>
             <div class="sig-space"></div>
-            <strong>${ownerName}</strong>
+            <div class="sig-name">${ownerName}</div>
         </div>
     </div>
 

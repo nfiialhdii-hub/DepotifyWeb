@@ -4,11 +4,14 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesTransactionController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\StockMovementController;
+use App\Http\Controllers\StockNotificationController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
 
@@ -84,6 +87,25 @@ Route::prefix('v1')->group(function () use ($healthHandler) {
             Route::get('/stock', [StockController::class, 'index']);
             Route::get('/stock/{id}', [StockController::class, 'show']);
             Route::put('/stock/{id}', [StockController::class, 'update']);
+
+            // Transaksi & Riwayat Pergerakan Stok (digunakan juga oleh aplikasi Android saat Direct Receive & Opname)
+            Route::post('/stock-transactions/masuk', [StockMovementController::class, 'masuk']);
+            Route::post('/stock-transactions/keluar', [StockMovementController::class, 'keluar']);
+            Route::post('/stock-transactions/penyesuaian', [StockMovementController::class, 'penyesuaian']);
+            Route::get('/stock-movements', [StockMovementController::class, 'index']);
+            Route::get('/stock-movements/{id}', [StockMovementController::class, 'show']);
+            Route::post('/stock-movements', [StockMovementController::class, 'store']);
+
+            // Penerimaan Barang PO (Goods Receipts)
+            Route::get('/goods-receipts', [GoodsReceiptController::class, 'index']);
+            Route::post('/goods-receipts', [GoodsReceiptController::class, 'store']);
+            Route::get('/goods-receipts/{id}', [GoodsReceiptController::class, 'show']);
+            Route::put('/goods-receipts/{id}', [GoodsReceiptController::class, 'update']);
+
+            // Notifikasi Stok Menipis
+            Route::get('/stock-notifications', [StockNotificationController::class, 'index']);
+            Route::patch('/stock-notifications/{id}/read', [StockNotificationController::class, 'markAsRead']);
+            Route::delete('/stock-notifications/{id}', [StockNotificationController::class, 'destroy']);
         });
 
         // Endpoint khusus Admin / Owner (role: owner)

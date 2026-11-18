@@ -21,14 +21,16 @@ class PurchaseOrderController extends Controller
 {
     /**
      * Transisi status yang diizinkan untuk Owner / Admin Depot.
-     * - Saat masih Pending (draft / ordered), Owner hanya dapat membatalkan pesanan (cancelled).
-     * - Konfirmasi (confirmed), penolakan (rejected), dan pengiriman (shipped) dilakukan oleh Supplier.
-     * - Saat barang sudah dikirim oleh Supplier (shipped), Owner menandai Terima Barang (received).
+     * - Mendukung Direct Receive (konfirmasi penerimaan barang mandiri langsung ke 'received'
+     *   dari status 'draft', 'ordered', 'confirmed', maupun 'shipped').
+     * - Mendukung bypass pengiriman ('shipped') dan pembatalan ('cancelled').
      */
     private const OWNER_TRANSITIONS = [
-        'draft' => ['cancelled'],
-        'ordered' => ['cancelled'],
-        'shipped' => ['received'],
+        'draft' => ['draft', 'ordered', 'confirmed', 'shipped', 'received', 'cancelled'],
+        'ordered' => ['ordered', 'confirmed', 'shipped', 'received', 'cancelled'],
+        'confirmed' => ['confirmed', 'shipped', 'received', 'cancelled'],
+        'shipped' => ['shipped', 'received', 'cancelled'],
+        'received' => ['received'],
     ];
 
     /**
@@ -49,7 +51,7 @@ class PurchaseOrderController extends Controller
         $query = PurchaseOrder::with([
             'vendor',
             'creator:id,name,email,phone',
-            'items',
+            'items.product',
         ]);
 
         if ($user && $user->isVendor()) {
@@ -106,7 +108,7 @@ class PurchaseOrderController extends Controller
         $po = PurchaseOrder::with([
             'vendor',
             'creator:id,name,email,phone',
-            'items',
+            'items.product',
             'goodsReceipts',
         ])->findOrFail($id);
 
@@ -165,7 +167,7 @@ class PurchaseOrderController extends Controller
         });
 
         return response()->json(
-            $po->load(['vendor', 'creator:id,name,email,phone', 'items']),
+            $po->load(['vendor', 'creator:id,name,email,phone', 'items.product']),
             201
         );
     }
@@ -234,14 +236,14 @@ class PurchaseOrderController extends Controller
             return $po->load([
                 'vendor',
                 'creator:id,name,email,phone',
-                'items',
+                'items.product',
                 'goodsReceipts',
             ]);
         }
 
-        // Cabang otorisasi Owner / Admin
+        // Cabang otorisasi Owner / Admin (mendukung Direct Receive)
         $data = $request->validate($this->rules(true) + [
-            'status' => 'sometimes|in:ordered,confirmed,shipped,received,rejected,cancelled',
+            'status' => 'sometimes|in:draft,ordered,confirmed,shipped,received,rejected,cancelled',
         ]);
 
         if (isset($data['items']) && $po->status !== 'draft') {
@@ -271,20 +273,20 @@ class PurchaseOrderController extends Controller
                 $po->update(['total_price' => $po->subtotal_price]);
             }
 
-            // Pastikan stok gudang Supplier berkurang saat status berubah ke 'shipped' atau 'received'
+            // Saat Owner melakukan Direct Receive atau mengubah status ke 'shipped'/'received',
+            // kurangi stok gudang Supplier secara aman (strict = false agar tidak gagal jika stok gudang supplier 0)
             if (
                 isset($data['status'])
                 && in_array($data['status'], ['shipped', 'received'], true)
             ) {
-                $this->deductSupplierStockOnShip($po, $user);
+                $this->deductSupplierStockOnShip($po, $user, false);
             }
 
-            // Jika Owner mengubah status PO menjadi 'received' (Barang Diterima),
+            // Jika Owner mengubah status PO menjadi 'received' (Barang Diterima / Direct Receive),
             // otomatis tambahkan stok produk ke gudang Depot Owner dan catat GoodsReceipt + StockMovement.
             if (
                 isset($data['status'])
                 && $data['status'] === 'received'
-                && $previousStatus !== 'received'
             ) {
                 $this->receiveOrderItemsIntoStock($po, $user);
             }
@@ -292,6 +294,8 @@ class PurchaseOrderController extends Controller
             if (isset($data['status']) && $data['status'] !== $previousStatus) {
                 $statusText = match ($data['status']) {
                     'received' => 'Selesai (Barang Diterima & Stok Bertambah)',
+                    'shipped' => 'Dikirim',
+                    'confirmed' => 'Dikonfirmasi',
                     'cancelled' => 'Dibatalkan',
                     default => $data['status'],
                 };
@@ -310,7 +314,7 @@ class PurchaseOrderController extends Controller
         return $po->load([
             'vendor',
             'creator:id,name,email,phone',
-            'items',
+            'items.product',
             'goodsReceipts',
         ]);
     }
@@ -368,6 +372,8 @@ class PurchaseOrderController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.product_description' => 'nullable|string',
             'items.*.qty_ordered' => 'required|integer|min:1',
+            'items.*.unit_price' => 'nullable|numeric|min:0',
+            'items.*.agreed_price' => 'nullable|numeric|min:0',
         ];
     }
 
@@ -385,11 +391,17 @@ class PurchaseOrderController extends Controller
                 ]);
             }
 
+            $customPrice = isset($item['unit_price']) && (float) $item['unit_price'] > 0
+                ? (float) $item['unit_price']
+                : (isset($item['agreed_price']) && (float) $item['agreed_price'] > 0 ? (float) $item['agreed_price'] : null);
+
             // Untuk produk milik Supplier, gunakan harga jual supplier (selling_price);
-            // fallback ke purchase_price jika produk lama milik depot.
-            $price = $product->vendor_id !== null && (float) $product->selling_price > 0
-                ? (float) $product->selling_price
-                : (float) ($product->purchase_price > 0 ? $product->purchase_price : $product->selling_price);
+            // fallback ke customPrice / purchase_price jika produk milik depot.
+            $price = $customPrice ?? (
+                $product->vendor_id !== null && (float) $product->selling_price > 0
+                    ? (float) $product->selling_price
+                    : (float) ($product->purchase_price > 0 ? $product->purchase_price : $product->selling_price)
+            );
 
             $total = round($item['qty_ordered'] * $price, 2);
 
@@ -414,8 +426,9 @@ class PurchaseOrderController extends Controller
     /**
      * Kurangi stok gudang milik Supplier ketika pesanan PO dikirim ('shipped').
      * Dijamin idempoten (hanya dipotong 1x per PO).
+     * Jika $strict = false (misal saat Direct Receive oleh Owner), jangan lempar error jika stok supplier kurang.
      */
-    private function deductSupplierStockOnShip(PurchaseOrder $po, User $user): void
+    private function deductSupplierStockOnShip(PurchaseOrder $po, User $user, bool $strict = true): void
     {
         $alreadyDeducted = StockMovement::where('reference_type', 'po_supplier_out')
             ->where('reference_id', $po->id)
@@ -438,13 +451,23 @@ class PurchaseOrderController extends Controller
                 continue;
             }
 
-            if ((int) $supplierProduct->stock_content < $qty) {
-                throw ValidationException::withMessages([
-                    'status' => "Stok gudang Supplier untuk {$supplierProduct->name} tidak mencukupi (Tersedia: {$supplierProduct->stock_content}, Pesanan: {$qty}).",
-                ]);
+            $availableSupplierStock = (int) $supplierProduct->stock_content;
+
+            if ($availableSupplierStock < $qty) {
+                if ($strict) {
+                    throw ValidationException::withMessages([
+                        'status' => "Stok gudang Supplier untuk {$supplierProduct->name} tidak mencukupi (Tersedia: {$availableSupplierStock}, Pesanan: {$qty}).",
+                    ]);
+                }
+
+                // Pada mode Direct Receive (non-strict), potong sebatas stok yang ada
+                if ($availableSupplierStock <= 0) {
+                    continue;
+                }
+                $qty = $availableSupplierStock;
             }
 
-            $supplierProduct->stock_content = max(0, (int) $supplierProduct->stock_content - $qty);
+            $supplierProduct->stock_content = max(0, $availableSupplierStock - $qty);
             $supplierProduct->save();
 
             StockMovement::create([
@@ -463,7 +486,7 @@ class PurchaseOrderController extends Controller
 
     /**
      * Tambahkan kuantitas item PO ke stok produk Depot Owner (vendor_id = null) secara otomatis
-     * ketika Owner menandai PO sebagai 'received' (Selesai / Barang Diterima).
+     * ketika Owner menandai PO sebagai 'received' (Selesai / Barang Diterima / Direct Receive).
      */
     private function receiveOrderItemsIntoStock(PurchaseOrder $po, User $user): void
     {
@@ -497,7 +520,7 @@ class PurchaseOrderController extends Controller
             'qc_status' => 'passed',
             'document_type' => 'do_and_invoice',
             'document_number' => $po->po_number,
-            'notes' => 'Penerimaan barang otomatis saat PO ditandai selesai oleh Owner.',
+            'notes' => $po->notes ?: 'Penerimaan barang otomatis saat PO ditandai selesai oleh Owner.',
         ]);
 
         foreach ($pendingRows as $entry) {
@@ -524,7 +547,9 @@ class PurchaseOrderController extends Controller
             ]);
 
             $ownerProduct->stock_content = (int) $ownerProduct->stock_content + $qty;
-            $ownerProduct->purchase_price = (float) $poItem->agreed_price;
+            if ((float) $poItem->agreed_price > 0) {
+                $ownerProduct->purchase_price = (float) $poItem->agreed_price;
+            }
             $ownerProduct->save();
 
             StockMovement::create([
@@ -533,8 +558,8 @@ class PurchaseOrderController extends Controller
                 'movement_type' => 'in',
                 'qty' => $qty,
                 'ending_balance' => (int) $ownerProduct->stock_content,
-                'reference_type' => 'goods_receipt',
-                'reference_id' => $receipt->id,
+                'reference_type' => 'purchase_order',
+                'reference_id' => $po->id,
                 'description' => "Penerimaan PO {$po->po_number} ({$receipt->receipt_number})",
                 'created_by' => $user->id,
             ]);

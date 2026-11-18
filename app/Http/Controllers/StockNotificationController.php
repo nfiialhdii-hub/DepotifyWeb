@@ -29,13 +29,31 @@ class StockNotificationController extends Controller
 
         $notification->update(['is_read' => $data['is_read'] ?? true]);
 
-        return $notification;
+        return response()->json([
+            'success' => true,
+            'message' => 'Notifikasi diperbarui.',
+            'data' => $notification,
+        ]);
+    }
+
+    public function markAsRead($id)
+    {
+        $notification = StockNotification::findOrFail($id);
+        $notification->update(['is_read' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notifikasi ditandai sudah dibaca.',
+        ]);
     }
 
     public function destroy($id)
     {
         StockNotification::findOrFail($id)->delete();
 
-        return response()->json(['message' => 'Notifikasi dihapus.']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Notifikasi dihapus.',
+        ]);
     }
 }

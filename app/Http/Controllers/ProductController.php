@@ -271,6 +271,17 @@ class ProductController extends Controller
             $validated['purchase_price'] = $validated['selling_price'];
         }
 
+        // Cegah reset stok menjadi 0 secara tidak sengaja saat aplikasi Android mengirim
+        // default stock_content = 0 / empty_stock = 0 pada PUT /api/v1/products/{id} (Edit/Sync Produk)
+        if (!$vendor) {
+            if (isset($validated['stock_content']) && (int) $validated['stock_content'] === 0 && (int) $product->stock_content > 0) {
+                unset($validated['stock_content']);
+            }
+            if (isset($validated['empty_stock']) && (int) $validated['empty_stock'] === 0 && (int) $product->empty_stock > 0) {
+                unset($validated['empty_stock']);
+            }
+        }
+
         $product->update($validated);
 
         if ($vendor) {

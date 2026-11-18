@@ -941,7 +941,6 @@ function Products() {
                                                     </strong>
                                                 </td>
 
-
                                                 <td>
                                                     <span
                                                         className={
@@ -962,7 +961,6 @@ function Products() {
                                                     </span>
                                                 </td>
 
-
                                                 <td>
                                                     <div className="product-actions">
 
@@ -977,7 +975,6 @@ function Products() {
                                                         >
                                                             Edit
                                                         </button>
-
 
                                                         <button
                                                             type="button"
